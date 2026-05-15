@@ -3,305 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Werewolf Mobile LAN</title>
+    <title>Werewolf Mobile</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Almendra:wght@400;700&display=swap');
+
         :root {
-            --ui-font: 'Almendra', serif; /* Use a gothic/mystical font style */
+            --ui-orange: #ff4500;
+            --ui-bg: rgba(0, 0, 0, 0.85);
         }
 
         body, html {
-            margin: 0; padding: 0;
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            overflow: hidden; font-family: 'Almendra', serif;
+            background: #000; color: white;
+        }
+
+        #app-container {
             width: 100vw; height: 100vh;
-            overflow: hidden; /* Disable mobile scroll/navigation */
-            font-family: sans-serif;
-            background-color: #000;
+            background-size: cover; background-position: center;
+            display: flex; flex-direction: column;
+            transition: background 0.5s ease;
         }
 
-        #game-container {
-            width: 100vw; height: 100vh;
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            flex-direction: column;
-            transition: background 1s ease;
-        }
-
-        /* --- Header Section --- */
-        #header {
-            height: 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 15px;
-            background: rgba(0,0,0,0.6);
-        }
-
-        .logo { height: 40px; }
-        .nav-btn { height: 40px; cursor: pointer; }
-
-        /* --- Main Game Layout (Split 16 Players) --- */
-        #main-stage {
-            flex: 1;
-            display: grid;
-            grid-template-columns: 120px 1fr 120px; /* 8 left - Chat - 8 right */
-            gap: 5px;
-            padding: 10px;
-            overflow: hidden;
-        }
-
-        .side-panel {
-            display: grid;
-            grid-template-rows: repeat(8, 1fr);
-            gap: 5px;
-        }
-
-        /* Player Profile Slots */
-        .player-slot {
-            position: relative;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .p-avatar { width: 50px; height: 50px; border-radius: 50%; border: 2px solid #555; }
-        .p-name { color: #fff; margin-top: 2px; font-weight: bold; text-align: center; width: 90%; overflow: hidden; }
-        .p-role { color: #ffd700; font-style: italic; display: none; } /* Master only */
-
-        /* Emojis & Notifications */
-        .emoji-overlay {
-            position: absolute;
-            top: -10px; right: 10px;
-            width: 30px; height: 30px;
-            z-index: 10;
-        }
-
-        .notif-icon {
-            position: absolute;
-            bottom: 5px; right: 5px;
-            width: 20px; height: 20px;
-            display: none;
-        }
-
-        /* --- Central Chat Column --- */
-        #center-col {
-            display: flex;
-            flex-direction: column;
-            background: rgba(0,0,0,0.4);
-            border-radius: 12px;
-            padding: 5px;
-        }
-
-        #chat-tabs {
-            display: flex;
-            gap: 2px;
-            margin-bottom: 5px;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            background: #333;
-            color: #ccc;
-            cursor: pointer;
-            border-radius: 5px 5px 0 0;
-            font-size: 12px;
-        }
-
-        .tab.active { background: #555; color: #fff; font-weight: bold; }
-        .tab.secret { background: #4b0082; display: none; } /* Shown for _BLACK */
-
-        #chat-history {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 5px;
-            font-size: 13px;
-        }
-
-        .chat-msg { margin-bottom: 8px; }
-        .chat-msg b { color: #4fc3f7; }
-
-        /* --- Bottom Controls --- */
-        #input-area {
-            height: 100px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 0 15px;
-            background: rgba(0,0,0,0.8);
-        }
-
-        #msg-input { flex: 1; padding: 12px; border-radius: 5px; border: none; }
-        .btn-ui { height: 50px; cursor: pointer; }
-
-        /* Emoji Menu (1.png trigger) */
-        #emoji-menu {
-            position: absolute;
-            bottom: 110px; left: 15px;
-            background: #222;
-            display: none;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px; padding: 10px;
-            border-radius: 10px;
-            border: 2px solid #444;
-        }
-        .emoji-item { width: 40px; height: 40px; cursor: pointer; }
-
-        /* --- Role Card Animation --- */
-        #card-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: none;
-            align-items: center; justify-content: center;
-            z-index: 100;
-        }
-
-        .card {
-            width: 280px; height: 420px;
-            transition: transform 0.8s;
-            transform-style: preserve-3d;
-            position: relative;
-        }
-        .card.flipped { transform: rotateY(180deg); }
-        .card-face {
-            position: absolute; width: 100%; height: 100%;
-            backface-visibility: hidden; border-radius: 20px;
-        }
-        .card-front { transform: rotateY(180deg); background-size: cover; }
-        .card-back { background-image: url('assets/cards/card_back.png'); background-size: cover; }
-
+        .screen { flex: 1; display: flex; flex-direction: column; padding: 15px; box-sizing: border-box; }
         .hidden { display: none !important; }
+
+        /* --- STYLING BUTTONS & INPUTS FROM YOUR UI ASSETS --- */
+        .btn-primary {
+            background: url('assets/ui/btn_primary.png') no-repeat center;
+            background-size: contain; border: none; color: white;
+            padding: 15px 30px; font-size: 1.2rem; cursor: pointer;
+            font-family: 'Almendra', serif; min-width: 200px;
+        }
+
+        input {
+            background: rgba(255,255,255,0.1); border: 1px solid var(--ui-orange);
+            color: white; padding: 12px; border-radius: 5px; font-size: 1rem;
+            margin-bottom: 10px; width: 100%; box-sizing: border-box;
+        }
+
+        /* --- AVATAR SELECTION --- */
+        .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
+        .avatar-opt { width: 100%; border-radius: 50%; border: 2px solid transparent; transition: 0.2s; }
+        .avatar-opt.selected { border-color: var(--ui-orange); transform: scale(1.1); box-shadow: 0 0 10px var(--ui-orange); }
+
+        /* --- GAME LAYOUT (16 PLAYER SPLIT) --- */
+        #game-stage {
+            flex: 1; display: grid; grid-template-columns: 100px 1fr 100px; gap: 5px; overflow: hidden;
+        }
+
+        .side-panel { display: flex; flex-direction: column; gap: 8px; }
+
+        .p-slot {
+            position: relative; display: flex; flex-direction: column; align-items: center;
+            background: rgba(255,255,255,0.1); padding: 5px; border-radius: 8px; font-size: 10px;
+        }
+
+        .p-avatar { width: 45px; height: 45px; border-radius: 50%; border: 1px solid #444; }
+        .p-emoji { position: absolute; top: -5px; right: -5px; width: 25px; height: 25px; z-index: 5; }
+        .p-notif { position: absolute; bottom: 15px; left: 0; width: 18px; height: 18px; display: none; }
+
+        /* --- CENTRAL CHAT --- */
+        #chat-window { display: flex; flex-direction: column; background: var(--ui-bg); border-radius: 10px; padding: 5px; }
+        #chat-tabs { display: flex; height: 40px; border-bottom: 1px solid #333; }
+        .tab { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.5; font-size: 1.2rem; }
+        .tab.active { opacity: 1; border-bottom: 2px solid var(--ui-orange); }
+
+        #chat-history { flex: 1; overflow-y: auto; padding: 5px; font-size: 14px; }
+
+        /* --- CONTROLS --- */
+        #bottom-bar { height: 70px; display: flex; align-items: center; gap: 10px; padding: 0 10px; background: #000; }
+        #emoji-trigger { width: 45px; height: 45px; order: 3; } /* Moved to right bottom */
+
+        #emoji-menu {
+            position: fixed; bottom: 80px; right: 10px; background: #111;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            padding: 10px; border: 1px solid var(--ui-orange); border-radius: 10px; z-index: 100;
+        }
+
+        /* --- CARD ANIMATION --- */
+        #card-reveal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 1000; display: none;
+            align-items: center; justify-content: center;
+        }
+        .card-inner { width: 280px; height: 420px; transition: 0.8s; transform-style: preserve-3d; position: relative; }
+        .card-inner.flipped { transform: rotateY(180deg); }
+        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; }
+        .card-back { background: url('assets/cards/card_back.png') center/cover; }
+        .card-front { transform: rotateY(180deg); background-size: cover; }
     </style>
 </head>
 <body>
 
-<div id="game-container" style="background-image: url('assets/backgrounds/bg_lobby.jpg');">
+<div id="app-container" style="background-image: url('assets/backgrounds/bg_lobby.jpg');">
     
-    <div id="header">
-        <img src="assets/ui/icon_exit.png" class="nav-btn" onclick="exitGame()">
-        <img src="assets/ui/werewolf.png" class="logo">
-        <img src="assets/ui/icon_settings.png" class="nav-btn" id="host-settings" onclick="toggleSettings()">
+    <div id="game-header" class="hidden" style="display:flex; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.5);">
+        <img src="assets/ui/icon_exit.png" style="height:30px;" onclick="location.reload()">
+        <img src="assets/ui/werewolf.png" style="height:30px;">
+        <img src="assets/ui/icon_settings.png" id="host-gear" class="hidden" style="height:30px;">
     </div>
 
-    <div id="main-stage">
-        <div id="left-side" class="side-panel">
-            </div>
+    <div id="start-screen" class="screen" style="justify-content: center; align-items: center;">
+        <img src="assets/ui/werewolf.png" style="width: 80%; margin-bottom: 40px;">
+        <button class="btn-primary" onclick="showScreen('config-screen')">CREATE ROOM</button>
+        <div style="margin-top: 30px; width: 80%;">
+            <input type="text" id="join-code" placeholder="ENTER 4-LETTER CODE">
+            <button class="btn-primary" onclick="prepareJoin()">JOIN ROOM</button>
+        </div>
+    </div>
 
-        <div id="center-col">
-            <div id="chat-tabs">
-                <div class="tab active" onclick="setTab('global')">🌐 Global</div>
-                <div class="tab" onclick="setTab('private')">👤 Private</div>
-                <div class="tab secret" id="master-tab" onclick="setTab('secret')">👁️ Secret</div>
+    <div id="config-screen" class="screen hidden">
+        <h2>ROOM CONFIGURATION</h2>
+        <input type="text" id="host-name" placeholder="YOUR USERNAME (Use _BLACK for Master)">
+        <div class="avatar-grid" id="host-avatars"></div>
+        
+        <div class="box" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px;">
+            <h4>GAME RULES</h4>
+            Night Duration: <input type="number" id="cfg-night" value="30">
+            Day Duration: <input type="number" id="cfg-day" value="0"> (0 = Unlimited)
+        </div>
+        <button class="btn-primary" onclick="createRoom()">LAUNCH ROOM</button>
+    </div>
+
+    <div id="join-setup" class="screen hidden">
+        <h2>JOINING ROOM: <span id="target-room"></span></h2>
+        <input type="text" id="player-name" placeholder="YOUR USERNAME">
+        <div class="avatar-grid" id="player-avatars"></div>
+        <button class="btn-primary" onclick="finalizeJoin()">ENTER LOBBY</button>
+    </div>
+
+    <div id="game-screen" class="screen hidden" style="padding: 5px;">
+        <div id="game-stage">
+            <div id="left-slots" class="side-panel"></div>
+            <div id="chat-window">
+                <div id="chat-tabs">
+                    <div class="tab active" id="tab-global" onclick="setTab('global')">🌐</div>
+                    <div class="tab" id="tab-priv" onclick="setTab('priv')">👤</div>
+                    <div class="tab hidden" id="tab-master" onclick="setTab('master')" style="background: #300;">👁️</div>
+                </div>
+                <div id="chat-history"></div>
             </div>
-            <div id="chat-history"></div>
+            <div id="right-slots" class="side-panel"></div>
         </div>
 
-        <div id="right-side" class="side-panel">
-            </div>
-    </div>
-
-    <div id="emoji-menu">
+        <div id="bottom-bar">
+            <input type="text" id="chat-input" placeholder="Whisper...">
+            <img src="assets/ui/enter.png" style="height: 50px;" onclick="sendChat()">
+            <img src="assets/emojis/1.png" id="emoji-trigger" onclick="toggleEmojiMenu()">
         </div>
-
-    <div id="input-area">
-        <img src="assets/emojis/1.png" class="btn-ui" onclick="toggleEmojis()">
-        <input type="text" id="msg-input" placeholder="Whisper something...">
-        <img src="assets/ui/enter.png" class="btn-ui" onclick="handleSend()">
     </div>
-</div>
 
-<div id="card-overlay" onclick="this.style.display='none'">
-    <div class="card" id="reveal-card">
-        <div class="card-face card-back"></div>
-        <div class="card-face card-front" id="card-art"></div>
+    <div id="emoji-menu" class="hidden"></div>
+
+    <div id="card-reveal" onclick="this.style.display='none'">
+        <div class="card-inner" id="card-inner">
+            <div class="card-face card-back"></div>
+            <div class="card-face card-front" id="card-art"></div>
+        </div>
     </div>
 </div>
 
 <script>
-    // --- DATABASE CONFIG ---
-    const SUPABASE_URL = "https://uzqgleedmzxicejpbqqx.supabase.co"; 
-    const SUPABASE_KEY = "YOUR_ANON_KEY"; 
+    const SUPABASE_URL = "https://uzqgleedmzxicejpbqqx.supabase.co";
+    const SUPABASE_KEY = "YOUR_ANON_KEY";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let myId, myRoom, myName, myRole, isMaster = false, currentTab = 'global';
+    let myId, myRoom, myName, myAvatar, isMaster = false, currentTab = 'global', isHost = false;
 
-    // Initialize Layout
-    function buildPlayerGrid() {
-        const left = document.getElementById('left-side');
-        const right = document.getElementById('right-side');
+    // --- INITIALIZATION ---
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
+        if(id === 'config-screen' || id === 'join-setup') renderAvatars(id === 'config-screen' ? 'host-avatars' : 'player-avatars');
+    }
+
+    function renderAvatars(containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        for(let i=1; i<=16; i++) {
+            const num = i < 10 ? '0'+i : i;
+            container.innerHTML += `<img src="assets/avatars/avatar_${num}.png" class="avatar-opt" onclick="selectAvatar(this, '${num}')">`;
+        }
+    }
+
+    function selectAvatar(el, num) {
+        document.querySelectorAll('.avatar-opt').forEach(a => a.classList.remove('selected'));
+        el.classList.add('selected');
+        myAvatar = num;
+    }
+
+    // --- ROOM CREATION & CONFIG ---
+    async function createRoom() {
+        const name = document.getElementById('host-name').value;
+        if(!name || !myAvatar) return alert("Fill all details!");
         
-        for(let i=0; i<16; i++) {
+        const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+        isHost = true;
+        myRoom = code;
+        myName = name.replace('_BLACK', '');
+        if(name.endsWith('_BLACK')) isMaster = true;
+
+        await sb.from('rooms').insert([{ 
+            room_code: code, 
+            night_duration: document.getElementById('cfg-night').value,
+            day_duration: document.getElementById('cfg-day').value,
+            last_activity: new Date()
+        }]);
+
+        finalizeEntry();
+    }
+
+    function prepareJoin() {
+        const code = document.getElementById('join-code').value.toUpperCase();
+        if(!code) return alert("Enter code!");
+        myRoom = code;
+        document.getElementById('target-room').innerText = code;
+        showScreen('join-setup');
+    }
+
+    async function finalizeJoin() {
+        const name = document.getElementById('player-name').value;
+        if(!name || !myAvatar) return alert("Setup profile!");
+        myName = name.replace('_BLACK', '');
+        if(name.endsWith('_BLACK')) isMaster = true;
+        finalizeEntry();
+    }
+
+    async function finalizeEntry() {
+        const { data } = await sb.from('players').insert([{
+            room_code: myRoom, username: myName, avatar: myAvatar, is_master: isMaster
+        }]).select();
+        
+        myId = data[0].id;
+        showScreen('game-screen');
+        document.getElementById('game-header').classList.remove('hidden');
+        if(isHost) document.getElementById('host-gear').classList.remove('hidden');
+        if(isMaster) document.getElementById('tab-master').classList.remove('hidden');
+        
+        initRealtime();
+    }
+
+    // --- GAME ENGINE ---
+    function initRealtime() {
+        sb.channel('room_p').on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_code=eq.${myRoom}` }, payload => {
+            syncPlayerGrid();
+        }).subscribe();
+
+        sb.channel('room_m').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${myRoom}` }, payload => {
+            updatePhase(payload.new);
+        }).subscribe();
+        
+        syncPlayerGrid();
+    }
+
+    async function syncPlayerGrid() {
+        const { data: players } = await sb.from('players').select('*').eq('room_code', myRoom).order('id', { ascending: true });
+        const left = document.getElementById('left-slots');
+        const right = document.getElementById('right-slots');
+        left.innerHTML = ''; right.innerHTML = '';
+
+        players.forEach((p, index) => {
             const html = `
-                <div class="player-slot" id="slot-${i}">
-                    <img src="assets/ui/notification.png" class="notif-icon" id="notif-${i}">
-                    <img src="" class="p-avatar" id="avatar-${i}">
-                    <img src="" class="emoji-overlay" id="emoji-${i}">
-                    <span class="p-name" id="name-${i}">Empty</span>
-                    <span class="p-role" id="role-${i}"></span>
-                    <img src="assets/ui/icon_kick.png" class="nav-btn hidden" style="height:20px" id="kick-${i}" onclick="kickPlayer(${i})">
+                <div class="p-slot">
+                    <img src="assets/ui/notification.png" class="p-notif" id="notif-${p.id}">
+                    <img src="assets/avatars/avatar_${p.avatar}.png" class="p-avatar">
+                    <img src="" class="p-emoji" id="emoji-${p.id}">
+                    <div>${p.username}</div>
+                    ${isMaster ? `<div style="color:cyan; font-size:8px;">${p.role}</div>` : ''}
                 </div>`;
-            if(i < 8) left.innerHTML += html; else right.innerHTML += html;
-        }
+            if(index % 2 === 0) left.innerHTML += html; else right.innerHTML += html;
+        });
     }
 
-    // --- GAME LOGIC ---
-    async function joinGame(name, roomCode) {
-        myName = name;
-        myRoom = roomCode;
-        if(name.endsWith('_BLACK')) {
-            isMaster = true;
-            document.getElementById('master-tab').style.display = 'block';
-        }
-        // Normal Supabase Join Logic here...
-    }
-
-    function setTab(type) {
-        currentTab = type;
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        // Update UI to filter chat logic...
-    }
-
-    function toggleEmojis() {
+    function toggleEmojiMenu() {
         const menu = document.getElementById('emoji-menu');
-        menu.style.display = menu.style.display === 'grid' ? 'none' : 'grid';
-        if(menu.innerHTML === "") {
+        menu.classList.toggle('hidden');
+        if(menu.innerHTML === '') {
             for(let i=1; i<=16; i++) {
-                menu.innerHTML += `<img src="assets/emojis/${i}.png" class="emoji-item" onclick="sendEmoji(${i})">`;
+                menu.innerHTML += `<img src="assets/emojis/${i}.png" style="width:40px;" onclick="broadcastEmoji(${i})">`;
             }
         }
     }
 
-    function showRole(role) {
-        myRole = role;
-        const overlay = document.getElementById('card-overlay');
-        const card = document.getElementById('reveal-card');
-        const art = document.getElementById('card-art');
-        
-        // Match cards to files
-        let file = 'card_villager.png';
-        if(role === 'Werewolf') file = 'card_wolf.png';
-        if(role === 'Seer') file = 'card_seer.png';
-        if(role === 'Doctor') file = 'card_doc.png';
-
-        art.style.backgroundImage = `url('assets/cards/${file}')`;
-        overlay.style.display = 'flex';
-        setTimeout(() => card.classList.add('flipped'), 500);
+    // --- CLEANUP LOGIC ---
+    async function gameOverCleanup() {
+        if(!isHost) return;
+        await sb.from('players').delete().eq('room_code', myRoom);
+        await sb.from('rooms').delete().eq('room_code', myRoom);
+        location.reload();
     }
 
-    // Force orientation check
-    window.addEventListener("orientationchange", function() {
-        if(window.orientation === 0) alert("Please rotate to Landscape for the best experience!");
-    });
-
-    buildPlayerGrid();
 </script>
 </body>
 </html>
