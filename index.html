@@ -3,298 +3,321 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Werewolf Mobile</title>
+    <title>Werewolf: Bloodline</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Almendra:wght@400;700&display=swap');
 
         :root {
-            --ui-orange: #ff4500;
-            --ui-bg: rgba(0, 0, 0, 0.85);
+            --blood-red: #8a0303;
+            --blood-orange: #ff4500;
+            --dark-void: #0a0a0a;
+            --ui-bg: rgba(15, 15, 15, 0.95);
         }
 
+        /* --- OUTER BODY: FORCES DESKTOP TO LOOK LIKE MOBILE --- */
         body, html {
             margin: 0; padding: 0; width: 100vw; height: 100vh;
-            overflow: hidden; font-family: 'Almendra', serif;
-            background: #000; color: white;
+            background: #000; 
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Almendra', serif; color: #e0e0e0;
         }
 
+        /* --- FORCED MOBILE CONTAINER --- */
         #app-container {
-            width: 100vw; height: 100vh;
+            width: 100%; max-width: 430px; 
+            height: 100%; max-height: 932px;
+            background-color: var(--dark-void);
+            background-image: url('assets/backgrounds/bg_lobby.jpg');
             background-size: cover; background-position: center;
+            position: relative;
+            box-shadow: 0 0 30px rgba(138, 3, 3, 0.5); 
+            border: 1px solid #333;
             display: flex; flex-direction: column;
-            transition: background 0.5s ease;
+            overflow: hidden;
         }
 
-        .screen { flex: 1; display: flex; flex-direction: column; padding: 15px; box-sizing: border-box; }
+        .screen { flex: 1; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; background: rgba(0,0,0,0.6); }
         .hidden { display: none !important; }
 
-        /* --- STYLING BUTTONS & INPUTS FROM YOUR UI ASSETS --- */
-        .btn-primary {
-            background: url('assets/ui/btn_primary.png') no-repeat center;
-            background-size: contain; border: none; color: white;
-            padding: 15px 30px; font-size: 1.2rem; cursor: pointer;
-            font-family: 'Almendra', serif; min-width: 200px;
+        /* --- GOTHIC TYPOGRAPHY & UI --- */
+        h2 { text-align: center; color: var(--blood-red); text-shadow: 2px 2px 4px #000; letter-spacing: 2px; font-weight: 700; border-bottom: 1px solid var(--blood-red); padding-bottom: 10px;}
+        label { color: #aaa; font-size: 0.9rem; margin-top: 10px; display: block; }
+
+        .btn-custom {
+            background: linear-gradient(180deg, #2a0808 0%, #110000 100%);
+            border: 1px solid var(--blood-red); color: #fff;
+            padding: 15px; font-size: 1.3rem; cursor: pointer;
+            font-family: 'Almendra', serif; border-radius: 5px; margin: 10px 0;
+            text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.8); transition: 0.3s;
         }
+        .btn-custom:active { transform: scale(0.98); box-shadow: 0 0 10px var(--blood-red); }
 
         input {
-            background: rgba(255,255,255,0.1); border: 1px solid var(--ui-orange);
-            color: white; padding: 12px; border-radius: 5px; font-size: 1rem;
-            margin-bottom: 10px; width: 100%; box-sizing: border-box;
+            background: rgba(0,0,0,0.7); border: 1px solid #444; border-left: 3px solid var(--blood-red);
+            color: white; padding: 12px; font-size: 1.1rem; width: 100%; box-sizing: border-box; margin: 5px 0 15px 0;
+            font-family: 'Almendra', serif; outline: none;
+        }
+        input:focus { border-color: var(--blood-orange); }
+
+        /* --- RECTANGULAR AVATARS --- */
+        .profile-preview { 
+            width: 100px; height: 130px; /* Rectangular Portrait */
+            border-radius: 8px; border: 3px solid var(--blood-red); 
+            cursor: pointer; margin: 10px auto; display: block; 
+            box-shadow: 0 0 15px rgba(138,3,3,0.8); object-fit: cover;
+        }
+        
+        .modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 2000; display: none;
+            flex-direction: column; padding: 20px; box-sizing: border-box;
         }
 
-        /* --- AVATAR SELECTION --- */
-        .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 10px 0; }
-        .avatar-opt { width: 100%; border-radius: 50%; border: 2px solid transparent; transition: 0.2s; }
-        .avatar-opt.selected { border-color: var(--ui-orange); transform: scale(1.1); box-shadow: 0 0 10px var(--ui-orange); }
+        .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; overflow-y: auto; padding: 10px; }
+        .avatar-opt { width: 100%; height: auto; aspect-ratio: 3/4; border-radius: 6px; border: 2px solid transparent; cursor: pointer; object-fit: cover; }
+        .avatar-opt.selected { border-color: var(--blood-orange); filter: drop-shadow(0 0 5px var(--blood-orange)); }
 
-        /* --- GAME LAYOUT (16 PLAYER SPLIT) --- */
-        #game-stage {
-            flex: 1; display: grid; grid-template-columns: 100px 1fr 100px; gap: 5px; overflow: hidden;
-        }
+        /* Game Layout */
+        #game-stage { flex: 1; display: grid; grid-template-columns: 80px 1fr 80px; gap: 5px; margin-top: 10px; overflow: hidden; }
+        .side-panel { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; padding-bottom: 10px;}
+        .p-slot { background: linear-gradient(180deg, #1a1a1a 0%, #000 100%); border: 1px solid #333; padding: 5px; border-radius: 8px; text-align: center; font-size: 11px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+        .p-avatar { width: 60px; height: 80px; border-radius: 6px; border: 1px solid var(--blood-red); object-fit: cover; }
+        .kick-btn { position: absolute; top: -5px; right: -5px; width: 22px; height: 22px; cursor: pointer; background: #000; border-radius: 50%; }
 
-        .side-panel { display: flex; flex-direction: column; gap: 8px; }
-
-        .p-slot {
-            position: relative; display: flex; flex-direction: column; align-items: center;
-            background: rgba(255,255,255,0.1); padding: 5px; border-radius: 8px; font-size: 10px;
-        }
-
-        .p-avatar { width: 45px; height: 45px; border-radius: 50%; border: 1px solid #444; }
-        .p-emoji { position: absolute; top: -5px; right: -5px; width: 25px; height: 25px; z-index: 5; }
-        .p-notif { position: absolute; bottom: 15px; left: 0; width: 18px; height: 18px; display: none; }
-
-        /* --- CENTRAL CHAT --- */
-        #chat-window { display: flex; flex-direction: column; background: var(--ui-bg); border-radius: 10px; padding: 5px; }
-        #chat-tabs { display: flex; height: 40px; border-bottom: 1px solid #333; }
-        .tab { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.5; font-size: 1.2rem; }
-        .tab.active { opacity: 1; border-bottom: 2px solid var(--ui-orange); }
-
-        #chat-history { flex: 1; overflow-y: auto; padding: 5px; font-size: 14px; }
-
-        /* --- CONTROLS --- */
-        #bottom-bar { height: 70px; display: flex; align-items: center; gap: 10px; padding: 0 10px; background: #000; }
-        #emoji-trigger { width: 45px; height: 45px; order: 3; } /* Moved to right bottom */
-
-        #emoji-menu {
-            position: fixed; bottom: 80px; right: 10px; background: #111;
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
-            padding: 10px; border: 1px solid var(--ui-orange); border-radius: 10px; z-index: 100;
-        }
-
-        /* --- CARD ANIMATION --- */
-        #card-reveal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 1000; display: none;
-            align-items: center; justify-content: center;
-        }
-        .card-inner { width: 280px; height: 420px; transition: 0.8s; transform-style: preserve-3d; position: relative; }
-        .card-inner.flipped { transform: rotateY(180deg); }
-        .card-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; }
-        .card-back { background: url('assets/cards/card_back.png') center/cover; }
-        .card-front { transform: rotateY(180deg); background-size: cover; }
+        /* Chat */
+        #chat-window { background: var(--ui-bg); border: 1px solid #333; border-radius: 5px; display: flex; flex-direction: column; overflow: hidden; }
+        #chat-history { flex: 1; overflow-y: auto; padding: 10px; font-size: 14px; border-bottom: 1px solid #333; font-family: sans-serif; }
+        #bottom-bar { display: flex; align-items: center; padding: 5px; background: #0a0a0a; border-top: 1px solid var(--blood-red); }
     </style>
 </head>
 <body>
 
-<div id="app-container" style="background-image: url('assets/backgrounds/bg_lobby.jpg');">
+<div id="app-container">
     
-    <div id="game-header" class="hidden" style="display:flex; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.5);">
-        <img src="assets/ui/icon_exit.png" style="height:30px;" onclick="location.reload()">
-        <img src="assets/ui/werewolf.png" style="height:30px;">
-        <img src="assets/ui/icon_settings.png" id="host-gear" class="hidden" style="height:30px;">
-    </div>
-
-    <div id="start-screen" class="screen" style="justify-content: center; align-items: center;">
-        <img src="assets/ui/werewolf.png" style="width: 80%; margin-bottom: 40px;">
-        <button class="btn-primary" onclick="showScreen('config-screen')">CREATE ROOM</button>
-        <div style="margin-top: 30px; width: 80%;">
-            <input type="text" id="join-code" placeholder="ENTER 4-LETTER CODE">
-            <button class="btn-primary" onclick="prepareJoin()">JOIN ROOM</button>
-        </div>
+    <div id="start-screen" class="screen">
+        <img src="assets/ui/werewolf.png" style="width: 90%; margin: 60px auto 40px auto; filter: drop-shadow(0 0 10px rgba(138,3,3,0.8));">
+        <button class="btn-custom" onclick="showScreen('config-screen')">CREATE ROOM</button>
+        <div style="text-align: center; margin: 20px 0; color: #555;">— OR —</div>
+        <input type="text" id="join-code" placeholder="ENTER 4-LETTER CODE" style="text-align: center; letter-spacing: 5px; font-weight: bold;">
+        <button class="btn-custom" style="border-color: #444;" onclick="prepareJoin()">JOIN ROOM</button>
     </div>
 
     <div id="config-screen" class="screen hidden">
-        <h2>ROOM CONFIGURATION</h2>
-        <input type="text" id="host-name" placeholder="YOUR USERNAME (Use _BLACK for Master)">
-        <div class="avatar-grid" id="host-avatars"></div>
-        
-        <div class="box" style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px;">
-            <h4>GAME RULES</h4>
-            Night Duration: <input type="number" id="cfg-night" value="30">
-            Day Duration: <input type="number" id="cfg-day" value="0"> (0 = Unlimited)
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <img src="assets/ui/icon_exit.png" style="height:35px; cursor:pointer;" onclick="location.reload()">
+            <h2 style="margin:0; border:none;">THE RITUAL</h2>
+            <div style="width:35px;"></div> 
         </div>
-        <button class="btn-primary" onclick="createRoom()">LAUNCH ROOM</button>
+        
+        <img src="assets/avatars/avatar_01.png" id="host-avatar-prev" class="profile-preview" onclick="openAvatarModal('host')">
+        <div style="text-align:center; font-size:0.8rem; color:#aaa;">TAP TO CHANGE AVATAR</div>
+        
+        <label>YOUR NAME</label>
+        <input type="text" id="host-name" placeholder="Enter username...">
+        
+        <div style="background: rgba(0,0,0,0.8); padding: 15px; border-radius: 5px; border: 1px solid #333;">
+            <label>NIGHT DURATION (SECONDS)</label>
+            <input type="number" id="cfg-night" value="30">
+            <label>DAY DURATION (0 = UNLIMITED)</label>
+            <input type="number" id="cfg-day" value="0">
+            
+            <div style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                    <label>SEERS</label>
+                    <input type="number" id="cfg-seers" value="1">
+                </div>
+                <div style="flex:1;">
+                    <label>DOCTORS</label>
+                    <input type="number" id="cfg-docs" value="1">
+                </div>
+            </div>
+        </div>
+        
+        <button class="btn-custom" onclick="createRoom()" style="margin-top: 20px;">SUMMON LOBBY</button>
     </div>
 
     <div id="join-setup" class="screen hidden">
-        <h2>JOINING ROOM: <span id="target-room"></span></h2>
-        <input type="text" id="player-name" placeholder="YOUR USERNAME">
-        <div class="avatar-grid" id="player-avatars"></div>
-        <button class="btn-primary" onclick="finalizeJoin()">ENTER LOBBY</button>
+        <img src="assets/ui/icon_exit.png" style="height:35px; cursor:pointer; position:absolute; top:20px; left:20px;" onclick="location.reload()">
+        <h2 style="margin-top: 50px;">JOINING: <span id="target-room" style="color:white;"></span></h2>
+        
+        <img src="assets/avatars/avatar_02.png" id="player-avatar-prev" class="profile-preview" onclick="openAvatarModal('player')">
+        <div style="text-align:center; font-size:0.8rem; color:#aaa;">TAP TO CHANGE AVATAR</div>
+
+        <label>YOUR NAME</label>
+        <input type="text" id="player-name" placeholder="Enter username...">
+        <button class="btn-custom" onclick="finalizeJoin()">ENTER LOBBY</button>
     </div>
 
-    <div id="game-screen" class="screen hidden" style="padding: 5px;">
+    <div id="game-screen" class="screen hidden" style="padding: 10px;">
+        <div id="lobby-header" style="display:flex; justify-content:space-between; align-items:center; background: #000; padding: 10px; border-bottom: 2px solid var(--blood-red); border-radius: 5px;">
+            <img src="assets/ui/icon_exit.png" style="height:30px; cursor:pointer;" onclick="location.reload()">
+            <h3 id="room-id-display" style="margin:0; letter-spacing: 2px;">ROOM: ----</h3>
+            <button id="start-game-btn" class="hidden" style="background:var(--blood-red); color:white; border:none; padding:8px 15px; border-radius:3px; font-family:'Almendra'; font-weight:bold; cursor:pointer; font-size:1.1rem;" onclick="startGameLoop()">PLAY</button>
+        </div>
+
         <div id="game-stage">
             <div id="left-slots" class="side-panel"></div>
+            
             <div id="chat-window">
-                <div id="chat-tabs">
-                    <div class="tab active" id="tab-global" onclick="setTab('global')">🌐</div>
-                    <div class="tab" id="tab-priv" onclick="setTab('priv')">👤</div>
-                    <div class="tab hidden" id="tab-master" onclick="setTab('master')" style="background: #300;">👁️</div>
-                </div>
                 <div id="chat-history"></div>
+                <div id="bottom-bar">
+                    <input type="text" id="chat-input" placeholder="Whisper..." style="margin:0; flex:1; font-family: sans-serif; font-size: 1rem;">
+                    <img src="assets/ui/enter.png" style="height:40px; cursor:pointer;" onclick="sendChat()">
+                </div>
             </div>
+            
             <div id="right-slots" class="side-panel"></div>
         </div>
-
-        <div id="bottom-bar">
-            <input type="text" id="chat-input" placeholder="Whisper...">
-            <img src="assets/ui/enter.png" style="height: 50px;" onclick="sendChat()">
-            <img src="assets/emojis/1.png" id="emoji-trigger" onclick="toggleEmojiMenu()">
-        </div>
     </div>
 
-    <div id="emoji-menu" class="hidden"></div>
-
-    <div id="card-reveal" onclick="this.style.display='none'">
-        <div class="card-inner" id="card-inner">
-            <div class="card-face card-back"></div>
-            <div class="card-face card-front" id="card-art"></div>
-        </div>
+    <div id="avatar-modal" class="modal">
+        <h2>SELECT YOUR FORM</h2>
+        <div class="avatar-grid" id="modal-grid"></div>
+        <button class="btn-custom" onclick="closeAvatarModal()" style="margin-top:auto;">CONFIRM</button>
     </div>
+
 </div>
 
 <script>
     const SUPABASE_URL = "https://uzqgleedmzxicejpbqqx.supabase.co";
-    const SUPABASE_KEY = "YOUR_ANON_KEY";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWdsZWVkbXp4aWNlanBicXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzQ2MzEsImV4cCI6MjA5NDMxMDYzMX0.uO3efVivjiPYC4sQL2eSXjaA20xYV4Afyo0ORdL4HTs";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let myId, myRoom, myName, myAvatar, isMaster = false, currentTab = 'global', isHost = false;
+    let myId, myRoom, myName, myAvatar = "01", isHost = false, isMaster = false, targetProfile = 'host';
+    let localGameConfig = {}; 
 
-    // --- INITIALIZATION ---
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
-        if(id === 'config-screen' || id === 'join-setup') renderAvatars(id === 'config-screen' ? 'host-avatars' : 'player-avatars');
     }
 
-    function renderAvatars(containerId) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = '';
+    function openAvatarModal(type) {
+        targetProfile = type;
+        const modal = document.getElementById('avatar-modal');
+        const grid = document.getElementById('modal-grid');
+        grid.innerHTML = '';
         for(let i=1; i<=16; i++) {
             const num = i < 10 ? '0'+i : i;
-            container.innerHTML += `<img src="assets/avatars/avatar_${num}.png" class="avatar-opt" onclick="selectAvatar(this, '${num}')">`;
+            grid.innerHTML += `<img src="assets/avatars/avatar_${num}.png" class="avatar-opt" onclick="setAvatar('${num}')">`;
         }
+        modal.style.display = 'flex';
     }
 
-    function selectAvatar(el, num) {
-        document.querySelectorAll('.avatar-opt').forEach(a => a.classList.remove('selected'));
-        el.classList.add('selected');
+    function setAvatar(num) {
         myAvatar = num;
+        const imgId = targetProfile === 'host' ? 'host-avatar-prev' : 'player-avatar-prev';
+        document.getElementById(imgId).src = `assets/avatars/avatar_${num}.png`;
+        closeAvatarModal();
     }
 
-    // --- ROOM CREATION & CONFIG ---
-    async function createRoom() {
-        const name = document.getElementById('host-name').value;
-        if(!name || !myAvatar) return alert("Fill all details!");
-        
-        const code = Math.random().toString(36).substring(2, 6).toUpperCase();
-        isHost = true;
-        myRoom = code;
-        myName = name.replace('_BLACK', '');
-        if(name.endsWith('_BLACK')) isMaster = true;
+    function closeAvatarModal() { document.getElementById('avatar-modal').style.display = 'none'; }
 
-        await sb.from('rooms').insert([{ 
-            room_code: code, 
+    async function createRoom() {
+        const nameInput = document.getElementById('host-name').value.trim();
+        if(!nameInput) return alert("You must enter a name.");
+        
+        isHost = true;
+        myRoom = Math.random().toString(36).substring(2, 6).toUpperCase();
+        processName(nameInput);
+
+        localGameConfig = {
+            seers: document.getElementById('cfg-seers').value,
+            docs: document.getElementById('cfg-docs').value
+        };
+
+        const { error } = await sb.from('rooms').insert([{
+            room_code: myRoom,
             night_duration: document.getElementById('cfg-night').value,
-            day_duration: document.getElementById('cfg-day').value,
-            last_activity: new Date()
+            day_duration: document.getElementById('cfg-day').value
         }]);
 
-        finalizeEntry();
+        if (error) {
+            console.error("Room Insert Error:", error);
+            alert("Database Error (Rooms): " + error.message);
+            return;
+        }
+
+        enterLobby();
     }
 
     function prepareJoin() {
-        const code = document.getElementById('join-code').value.toUpperCase();
-        if(!code) return alert("Enter code!");
-        myRoom = code;
-        document.getElementById('target-room').innerText = code;
+        myRoom = document.getElementById('join-code').value.toUpperCase().trim();
+        if(!myRoom) return alert("Enter the Room Code.");
+        document.getElementById('target-room').innerText = myRoom;
+        
+        let randAvatar = Math.floor(Math.random() * 16) + 1;
+        randAvatar = randAvatar < 10 ? '0'+randAvatar : randAvatar;
+        setAvatar(randAvatar); 
+
         showScreen('join-setup');
     }
 
     async function finalizeJoin() {
-        const name = document.getElementById('player-name').value;
-        if(!name || !myAvatar) return alert("Setup profile!");
-        myName = name.replace('_BLACK', '');
-        if(name.endsWith('_BLACK')) isMaster = true;
-        finalizeEntry();
+        const nameInput = document.getElementById('player-name').value.trim();
+        if(!nameInput) return alert("You must enter a name.");
+        processName(nameInput);
+        enterLobby();
     }
 
-    async function finalizeEntry() {
-        const { data } = await sb.from('players').insert([{
+    function processName(val) {
+        myName = val.replace('_BLACK', '');
+        if(val.endsWith('_BLACK')) isMaster = true;
+    }
+
+    async function enterLobby() {
+        const { data, error } = await sb.from('players').insert([{
             room_code: myRoom, username: myName, avatar: myAvatar, is_master: isMaster
         }]).select();
         
+        if (error) {
+            console.error("Player Insert Error:", error);
+            alert("Database Error (Players): " + error.message + "\nDid you run the ALTER TABLE command for the avatar column?");
+            return;
+        }
+
         myId = data[0].id;
+        document.getElementById('room-id-display').innerText = `ROOM: ${myRoom}`;
         showScreen('game-screen');
-        document.getElementById('game-header').classList.remove('hidden');
-        if(isHost) document.getElementById('host-gear').classList.remove('hidden');
-        if(isMaster) document.getElementById('tab-master').classList.remove('hidden');
+        if(isHost) document.getElementById('start-game-btn').classList.remove('hidden');
         
         initRealtime();
     }
 
-    // --- GAME ENGINE ---
     function initRealtime() {
-        sb.channel('room_p').on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_code=eq.${myRoom}` }, payload => {
-            syncPlayerGrid();
+        sb.channel('p_sync').on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_code=eq.${myRoom}` }, () => {
+            syncGrid();
         }).subscribe();
-
-        sb.channel('room_m').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${myRoom}` }, payload => {
-            updatePhase(payload.new);
-        }).subscribe();
-        
-        syncPlayerGrid();
+        syncGrid();
     }
 
-    async function syncPlayerGrid() {
-        const { data: players } = await sb.from('players').select('*').eq('room_code', myRoom).order('id', { ascending: true });
+    async function syncGrid() {
+        const { data: players } = await sb.from('players').select('*').eq('room_code', myRoom).order('id', {ascending: true});
+        if (!players) return;
+
         const left = document.getElementById('left-slots');
         const right = document.getElementById('right-slots');
         left.innerHTML = ''; right.innerHTML = '';
 
-        players.forEach((p, index) => {
-            const html = `
+        players.forEach((p, i) => {
+            const slot = `
                 <div class="p-slot">
-                    <img src="assets/ui/notification.png" class="p-notif" id="notif-${p.id}">
+                    ${isHost && p.id != myId ? `<img src="assets/ui/icon_kick.png" class="kick-btn" onclick="kick(${p.id})">` : ''}
                     <img src="assets/avatars/avatar_${p.avatar}.png" class="p-avatar">
-                    <img src="" class="p-emoji" id="emoji-${p.id}">
-                    <div>${p.username}</div>
-                    ${isMaster ? `<div style="color:cyan; font-size:8px;">${p.role}</div>` : ''}
+                    <div style="margin-top:5px; font-weight:bold; overflow:hidden; white-space:nowrap; letter-spacing:1px;">${p.username}</div>
                 </div>`;
-            if(index % 2 === 0) left.innerHTML += html; else right.innerHTML += html;
+            if(i % 2 === 0) left.innerHTML += slot; else right.innerHTML += slot;
         });
     }
 
-    function toggleEmojiMenu() {
-        const menu = document.getElementById('emoji-menu');
-        menu.classList.toggle('hidden');
-        if(menu.innerHTML === '') {
-            for(let i=1; i<=16; i++) {
-                menu.innerHTML += `<img src="assets/emojis/${i}.png" style="width:40px;" onclick="broadcastEmoji(${i})">`;
-            }
-        }
-    }
+    async function kick(id) { await sb.from('players').delete().eq('id', id); }
 
-    // --- CLEANUP LOGIC ---
-    async function gameOverCleanup() {
-        if(!isHost) return;
-        await sb.from('players').delete().eq('room_code', myRoom);
-        await sb.from('rooms').delete().eq('room_code', myRoom);
-        location.reload();
-    }
+    function sendChat() {}
 
+    function startGameLoop() {
+        alert("Game starting! (Logic to be implemented next)");
+    }
 </script>
 </body>
 </html>
