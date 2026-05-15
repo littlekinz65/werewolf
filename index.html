@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverless Werewolf</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #e0e0e0; padding: 15px; margin: 0; }
+        .hidden { display: none; }
+        .box { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
+        .chat-box { height: 120px; overflow-y: auto; background: #000; padding: 8px; margin-bottom: 8px; border-radius: 4px; font-family: monospace; }
+        button { background: #3f51b5; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #5c6bc0; }
+        input, select { background: #2d2d2d; color: white; border: 1px solid #444; padding: 8px; border-radius: 4px; margin-right: 5px; margin-bottom: 5px;}
+        .master-panel { background: #2e1a47; border: 2px solid #6a1b9a; }
+    </style>
+</head>
+<body>
+
+    <h2>🐺 Cloud Werewolf</h2>
+    <div id="status-bar" class="box">Status: Not Connected</div>
+
+    <div id="lobby-screen" class="box">
+        <h3>Join or Create a Room</h3>
+        <input type="text" id="username" placeholder="Your Nickname"><br><br>
+        <input type="text" id="room-input" placeholder="4-Letter Room Code">
+        <button onclick="joinRoom()">Join Room</button>
+        <hr style="border-color: #333; margin: 15px 0;">
+        <button onclick="createRoom()" style="background: #2e7d32;">Create New Room</button>
+    </div>
+
+    <div id="game-screen" class="box hidden">
+        <h3>Room Code: <span id="room-display" style="color: #4fc3f7;">----</span></h3>
+        <h3>Your Role: <span id="role-display" style="color: #ffd54f;">Assigned when game starts</span></h3>
+
+        <div id="host-controls" class="box hidden" style="background: #263238;">
+            <h4>Host Settings</h4>
+            Night Phase (sec): <input type="number" id="cfg-night" value="30" style="width: 50px;">
+            Day Phase (sec, 0=unlimited): <input type="number" id="cfg-day" value="0" style="width: 50px;">
+            <button onclick="startAutoGame()">Start Game Loop</button>
+        </div>
+
+        <div id="master-panel" class="box master-panel hidden">
+            <h3>👁️ GOD-MODE MONITOR (Secret Master)</h3>
+            <div id="master-roster" style="margin-bottom: 10px;"></div>
+            <h4>Intercepted Backroom Chats:</h4>
+            <div id="spy-chat-box" class="chat-box" style="color: #00e676;"></div>
+            <h4>Spoof Identity Message:</h4>
+            Send To: <select id="spoof-target"></select>
+            Impersonate: <select id="spoof-identity"></select>
+            <input type="text" id="spoof-text" placeholder="Type text as them...">
+            <button onclick="sendSpoofMsg()" style="background: #c62828;">Inject Fake Msg</button>
+        </div>
+
+        <h4>Players Present</h4>
+        <ul id="player-list"></ul>
+
+        <h4>Private Backroom Chat</h4>
+        Target Player: <select id="private-target"></select>
+        <div id="private-chat-box" class="chat-box" style="color: #ffb74d;"></div>
+        <input type="text" id="private-msg-input" placeholder="Type secret message...">
+        <button onclick="sendPrivateMsg()">Send Secretly</button>
+    </div>
+
+    <script>
+        // =========================================================
+        // STEP 2 PASTE: PUT YOUR SUPABASE DATA INSIDE THE QUOTES BELOW
+        const SUPABASE_URL = "https://uzqgleedmzxicejpbqqx.supabase.co/rest/v1/"; 
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWdsZWVkbXp4aWNlanBicXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzQ2MzEsImV4cCI6MjA5NDMxMDYzMX0.uO3efVivjiPYC4sQL2eSXjaA20xYV4Afyo0ORdL4HTs"; 
+        // =========================================================
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let myRoomCode = "";
+        let myUsername = "";
+        let myId = "";
+        let isMaster = false;
+        let isHost = false;
+        let timerInterval = null;
+
+        async function createRoom() {
+            const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+            const { error } = await supabaseClient.from('rooms').insert([{ room_code: code }]);
+            if (error) return alert("Error creating room, try again.");
+            
+            document.getElementById('room-input').value = code;
+            isHost = true;
+            alert(`Room ${code} created! Now enter your nickname and click Join.`);
+        }
+
+        async function joinRoom() {
+            let rawName = document.getElementById('username').value.trim();
+            const code = document.getElementById('room-input').value.trim().toUpperCase();
+
+            if (!rawName || !code) return alert("Fill in name and room code!");
+
+            myRoomCode = code;
+            if (rawName.endsWith('_BLACK')) {
+                myUsername = rawName.replace('_BLACK', '');
+                isMaster = true;
+            } else {
+                myUsername = rawName;
+            }
+
+            const { data, error } = await supabaseClient.from('players').insert([
+                { room_code: myRoomCode, username: myUsername, is_master: isMaster, private_mailbox: [] }
+            ]).select();
+
+            if (error) return alert("Failed to join room. Verify the code exists.");
+            
+            myId = data[0].id;
+
+            document.getElementById('lobby-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            document.getElementById('room-display').innerText = myRoomCode;
+
+            if (isMaster) document.getElementById('master-panel').classList.remove('hidden');
+            if (isHost) document.getElementById('host-controls').classList.remove('hidden');
+
+            setupRealtimeSubscriptions();
+            loadInitialPlayers();
+        }
+
+        function setupRealtimeSubscriptions() {
+            supabaseClient.channel('room-changes')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${myRoomCode}` }, 
+                payload => {
+                    const room = payload.new;
+                    document.getElementById('status-bar').innerText = `Phase: ${room.phase} | Time Left: ${room.time_remaining}s`;
+                    
+                    if (room.phase === 'NIGHT' && room.time_remaining === room.night_duration && isHost) {
+                        runHostTimerLoop(room.night_duration, 'DAY');
+                    } else if (room.phase === 'DAY' && room.time_remaining === room.day_duration && isHost && room.day_duration > 0) {
+                        runHostTimerLoop(room.day_duration, 'NIGHT');
+                    }
+                })
+                .subscribe();
+
+            supabaseClient.channel('player-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_code=eq.${myRoomCode}` }, 
+                () => {
+                    loadInitialPlayers();
+                })
+                .subscribe();
+        }
+
+        async function loadInitialPlayers() {
+            const { data: playerList } = await supabaseClient.from('players').select('*').eq('room_code', myRoomCode);
+            if (!playerList) return;
+
+            const listUi = document.getElementById('player-list');
+            const targetSelect = document.getElementById('private-target');
+            const spoofTarget = document.getElementById('spoof-target');
+            const spoofIdentity = document.getElementById('spoof-identity');
+
+            listUi.innerHTML = "";
+            targetSelect.innerHTML = "";
+            spoofTarget.innerHTML = "";
+            spoofIdentity.innerHTML = "";
+
+            let masterRosterHtml = "<strong>God-View Roster:</strong><br>";
+
+            playerList.forEach(p => {
+                listUi.innerHTML += `<li>${p.username}</li>`;
+                
+                if (p.id == myId) {
+                    document.getElementById('role-display').innerText = p.role;
+                } else {
+                    targetSelect.innerHTML += `<option value="${p.id}">${p.username}</option>`;
+                    spoofTarget.innerHTML += `<option value="${p.id}">${p.username}</option>`;
+                }
+                spoofIdentity.innerHTML += `<option value="${p.id}">${p.username}</option>`;
+
+                masterRosterHtml += `• ${p.username} = <span style="color:cyan;">${p.role}</span><br>`;
+
+                if (p.id == myId) {
+                    renderPrivateMessages(p.private_mailbox);
+                }
+                if (isMaster && p.is_master) {
+                    renderSpyMessages(p.private_mailbox);
+                }
+            });
+
+            if (isMaster) document.getElementById('master-roster').innerHTML = masterRosterHtml;
+        }
+
+        async function sendPrivateMsg() {
+            const targetId = document.getElementById('private-target').value;
+            const text = document.getElementById('private-msg-input').value.trim();
+            if (!text) return;
+
+            await deliverPayload(targetId, myUsername, text, false);
+            document.getElementById('private-chat-box').innerHTML += `<div>[To Someone]: ${text}</div>`;
+            document.getElementById('private-msg-input').value = "";
+        }
+
+        async function sendSpoofMsg() {
+            const targetId = document.getElementById('spoof-target').value;
+            const identityId = document.getElementById('spoof-identity').value;
+            const text = document.getElementById('spoof-text').value.trim();
+            if (!text) return;
+
+            const { data } = await supabaseClient.from('players').select('username').eq('id', identityId).single();
+            await deliverPayload(targetId, data.username, text, true);
+            document.getElementById('spoof-text').value = "";
+        }
+
+        async function deliverPayload(targetId, senderLabel, msgText, isSpoofed) {
+            const { data: target } = await supabaseClient.from('players').select('private_mailbox').eq('id', targetId).single();
+            let targetMailbox = target.private_mailbox || [];
+            targetMailbox.push({ from: senderLabel, text: msgText });
+            await supabaseClient.from('players').update({ private_mailbox: targetMailbox }).eq('id', targetId);
+
+            if (!isMaster) {
+                const { data: masterArr } = await supabaseClient.from('players').select('id, private_mailbox').eq('room_code', myRoomCode).eq('is_master', true);
+                if (masterArr && masterArr.length > 0) {
+                    let mMailbox = masterArr[0].private_mailbox || [];
+                    mMailbox.push({ from: senderLabel, text: msgText, spyTag: `[Real: ${myUsername}]` });
+                    await supabaseClient.from('players').update({ private_mailbox: mMailbox }).eq('id', masterArr[0].id);
+                }
+            }
+        }
+
+        function renderPrivateMessages(mailbox) {
+            const box = document.getElementById('private-chat-box');
+            box.innerHTML = "";
+            mailbox.forEach(m => {
+                if(!m.spyTag) {
+                    box.innerHTML += `<div><strong>${m.from}:</strong> ${m.text}</div>`;
+                }
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function renderSpyMessages(mailbox) {
+            const box = document.getElementById('spy-chat-box');
+            box.innerHTML = "";
+            mailbox.forEach(m => {
+                if (m.spyTag) {
+                    box.innerHTML += `<div>${m.spyTag} ${m.from}: "${m.text}"</div>`;
+                }
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function startAutoGame() {
+            const nightTime = parseInt(document.getElementById('cfg-night').value);
+            const dayTime = parseInt(document.getElementById('cfg-day').value);
+
+            const { data: plist } = await supabaseClient.from('players').select('id, is_master').eq('room_code', myRoomCode);
+            for (let i = 0; i < plist.length; i++) {
+                let role = plist[i].is_master ? 'MASTER' : (i % 3 === 0 ? 'Werewolf' : 'Villager');
+                await supabaseClient.from('players').update({ role: role }).eq('id', plist[i].id);
+            }
+
+            await supabaseClient.from('rooms').update({
+                phase: 'NIGHT',
+                night_duration: nightTime,
+                day_duration: dayTime,
+                time_remaining: nightTime
+            }).eq('room_code', myRoomCode);
+        }
+
+        function runHostTimerLoop(seconds, nextPhase) {
+            clearInterval(timerInterval);
+            let currentCount = seconds;
+
+            timerInterval = setInterval(async () => {
+                currentCount--;
+                await supabaseClient.from('rooms').update({ time_remaining: currentCount }).eq('room_code', myRoomCode);
+
+                if (currentCount <= 0) {
+                    clearInterval(timerInterval);
+                    const { data } = await supabaseClient.from('rooms').select('night_duration, day_duration').eq('room_code', myRoomCode).single();
+                    let nextMax = (nextPhase === 'DAY') ? data.day_duration : data.night_duration;
+
+                    await supabaseClient.from('rooms').update({
+                        phase: nextPhase,
+                        time_remaining: nextMax
+                    }).eq('room_code', myRoomCode);
+                }
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
