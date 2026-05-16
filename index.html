@@ -166,7 +166,7 @@
         <div id="game-stage">
             <div id="left-slots" class="side-panel"></div>
             <div id="chat-window">
-                <div id="chat-header" id="chat-context-title" onclick="setChatContext('global')">🌐 GLOBAL CHAT (Click to Reset)</div>
+                <div id="chat-header" onclick="setChatContext('global')">🌐 GLOBAL CHAT (Click to Reset)</div>
                 <div id="chat-history"></div>
                 <div id="emoji-drawer"></div>
             </div>
@@ -209,7 +209,6 @@
     let gameLoopInterval = null;
     let localChatHistory = [];
     let currentChatContext = 'global';
-    let tempAvatarId = Math.random().toString(36).substr(2,9); // Session ID for avatar picking
 
     // --- PRELOADER ---
     const assetsToLoad = [
@@ -261,12 +260,11 @@
     // --- REALTIME AVATAR PICKER ---
     async function openAvatarModal(type) {
         targetProfile = type; 
-        if(!myRoom) { // Generate temp room if host hasn't clicked create yet
+        if(!myRoom || myRoom === "undefined") { 
             myRoom = Math.random().toString(36).substring(2, 6).toUpperCase(); 
             isHost = true;
         }
         
-        // Connect to setup channel for real-time graying out
         if(!setupChannel) {
             setupChannel = sb.channel(`setup_${myRoom}`, { config: { broadcast: { self: false } } });
             setupChannel.on('broadcast', { event: 'avatar_claim' }, payload => {
@@ -304,14 +302,21 @@
             let base = raw.substring(0, splitIndex).substring(0, 6);
             if (raw.substring(splitIndex + 1) === 'BLACK') { isMaster = true; myName = base; } else { isMaster = false; myName = base; }
         } else { isMaster = false; myName = raw.substring(0, 6); }
+        if(!myName) myName = "Player";
     }
 
     // --- ENTRY ---
     async function createRoom() {
-        if(!document.getElementById('host-name').value.trim()) return alert("Enter a name.");
-        processName(document.getElementById('host-name').value);
+        const nameInput = document.getElementById('host-name').value;
+        if(!nameInput.trim()) return alert("Enter a name.");
+        isHost = true; 
+        if (!myRoom || myRoom === "undefined") myRoom = Math.random().toString(36).substring(2, 6).toUpperCase(); 
+        
+        processName(nameInput);
         const dayDur = localGameConfig.dayTime || 0;
-        await sb.from('rooms').insert([{ room_code: myRoom, phase: 'LOBBY', time_remaining: 0, day_duration: dayDur, night_duration: 30 }]);
+        
+        const { error } = await sb.from('rooms').insert([{ room_code: myRoom, phase: 'LOBBY', time_remaining: 0, day_duration: dayDur, night_duration: 30 }]);
+        if (error) { alert("Error Summoning Lobby: " + error.message); return; }
         enterLobby();
     }
 
@@ -328,7 +333,7 @@
     }
 
     async function enterLobby() {
-        if(setupChannel) { sb.removeChannel(setupChannel); setupChannel = null; } // Clean up temp channel
+        if(setupChannel) { sb.removeChannel(setupChannel); setupChannel = null; } 
         
         const { data: existing } = await sb.from('players').select('*').eq('room_code', myRoom).eq('username', myName);
         if(existing && existing.length > 0) {
@@ -336,7 +341,7 @@
         } else {
             const { data, error } = await sb.from('players').insert([{ room_code: myRoom, username: myName, avatar: myAvatar, is_master: isMaster }]).select();
             if (error) { alert("Error joining lobby: " + error.message); return; }
-            myId = data[0].id;
+            if (data && data.length > 0) myId = data[0].id;
         }
 
         document.getElementById('room-id-display').innerText = `ROOM: ${myRoom}`;
@@ -348,7 +353,6 @@
     // --- REALTIME LOBBY & GAME ---
     function initRealtime() {
         sb.channel('db_sync').on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_code=eq.${myRoom}` }, (payload) => { 
-            // Kick detection
             if(payload.eventType === 'DELETE' && payload.old.id === myId) {
                 alert("You have been kicked by the host."); location.reload();
             }
@@ -366,7 +370,7 @@
                 changeBackground('assets/backgrounds/bg_lobby.jpg'); 
                 document.getElementById('top-status-bar').innerText = `WAITING FOR PLAYERS...`; 
                 localChatHistory = []; renderChat(); 
-                if(isHost) document.getElementById('start-game-btn').style.display='block';
+                if(isHost) document.getElementById('start-game-btn').classList.remove('hidden');
             }
         }).subscribe();
 
@@ -388,6 +392,7 @@
     let pCache = {}; 
     async function syncGrid() {
         const { data: players } = await sb.from('players').select('*').eq('room_code', myRoom).order('id', {ascending: true});
+        if (!players) return;
         const left = document.getElementById('left-slots'); const right = document.getElementById('right-slots');
         left.innerHTML = ''; right.innerHTML = ''; pCache = {};
 
@@ -446,7 +451,7 @@
         input.value = '';
     }
 
-    // --- EMOJIS ---
+    // --- EMOJIS (20) ---
     function buildEmojiDrawer() { const drawer = document.getElementById('emoji-drawer'); for(let i=1; i<=20; i++) { drawer.innerHTML += `<img src="assets/emojis/${i}.png" style="width:35px; cursor:pointer;" onclick="castEmoji(${i})">`; } }
     function toggleEmoji() { const d = document.getElementById('emoji-drawer'); d.style.display = d.style.display === 'grid' ? 'none' : 'grid'; }
     function castEmoji(num) { document.getElementById('emoji-drawer').style.display = 'none'; roomChannel.send({ type: 'broadcast', event: 'emoji', payload: { pid: myId, emojiNum: num } }); }
@@ -458,7 +463,7 @@
 
     // --- CINEMATIC CARD ANIMATION ---
     async function initiateRoleReveal() {
-        document.getElementById('start-game-btn').style.display = 'none';
+        document.getElementById('start-game-btn').classList.add('hidden');
         const { data: players } = await sb.from('players').select('*').eq('room_code', myRoom);
         
         let pool = [];
@@ -478,7 +483,7 @@
 
         roomChannel.send({ type: 'broadcast', event: 'trigger_reveal', payload: { roles: assignments } });
         
-        // Host triggers Day 1 after animation finishes
+        // Host triggers Day 1 Discussion
         setTimeout(async () => {
             await sb.from('rooms').update({ phase: 'DAY1', time_remaining: 10 }).eq('room_code', myRoom);
             hostGameLoop('DAY1', 10);
@@ -490,13 +495,11 @@
         const overlay = document.getElementById('role-reveal-overlay');
         const cards = ['villager', 'wolf', 'seer', 'doc'];
         
-        // Reset state
         document.getElementById('reveal-cards-container').style.display = 'grid';
-        cards.forEach(c => document.getElementById(`rev-${c}`).className = 'r-card' ); // Reset rotation
+        cards.forEach(c => document.getElementById(`rev-${c}`).className = 'r-card' ); 
         document.getElementById('role-reveal-title').innerText = "YOUR DESTINY";
         overlay.style.opacity = 1; overlay.style.display = 'flex';
         
-        // Sequence
         setTimeout(() => {
             cards.forEach(c => {
                 let isWinner = false;
@@ -519,9 +522,8 @@
     function displayQuickRole() {
         if(isMaster || !myAssignedRole) return;
         const overlay = document.getElementById('role-reveal-overlay');
-        document.getElementById('reveal-cards-container').style.display = 'none'; // Hide the 4 grid
+        document.getElementById('reveal-cards-container').style.display = 'none'; 
         
-        // We inject a single card temporarily just to remind them
         let file = 'card_villager.png';
         if(myAssignedRole === 'Werewolf') file = 'card_wolf.png';
         if(myAssignedRole === 'Seer') file = 'card_seer.png';
@@ -530,7 +532,7 @@
         overlay.innerHTML = `<h2 style="border:none; margin-bottom: 40px; font-size:2rem; z-index:100;">TAP TO CLOSE</h2>
                              <div class="r-card" style="transform: rotateY(0deg) scale(1.3);"><div class="r-face r-front" style="background-image:url('assets/cards/${file}')"></div></div>`;
         
-        overlay.onclick = () => { overlay.style.display = 'none'; overlay.innerHTML = ''; }; // Wipe temp HTML
+        overlay.onclick = () => { overlay.style.display = 'none'; overlay.innerHTML = ''; }; 
         overlay.style.opacity = 1; overlay.style.display = 'flex';
     }
 
