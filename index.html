@@ -19,24 +19,15 @@
 
         #app-container {
             width: 100%; max-width: 430px; height: 100%; max-height: 932px;
-            background-color: var(--dark-void);
-            background-image: none; 
-            background-size: cover; background-position: center;
+            background-color: var(--dark-void); background-image: none; background-size: cover; background-position: center;
             position: relative; box-shadow: 0 0 30px rgba(138, 3, 3, 0.5); 
             display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* --- PHASE TRANSITION FADER --- */
-        #phase-transition {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 1000; opacity: 0; pointer-events: none;
-            transition: opacity 1s ease-in-out;
-        }
-
+        #phase-transition { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 1s ease-in-out; }
         .screen { flex: 1; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; background: rgba(0,0,0,0.6); }
         .hidden { display: none !important; }
 
-        /* Preloader */
         #loading-screen { position: absolute; z-index: 5000; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         #loading-text { color: var(--blood-red); font-size: 1.5rem; letter-spacing: 2px; margin-bottom: 20px; }
         .progress-bar { width: 60%; height: 5px; background: #222; border-radius: 5px; overflow: hidden; }
@@ -49,64 +40,65 @@
         .btn-custom:active { transform: scale(0.98); box-shadow: 0 0 10px var(--blood-red); }
 
         input[type="text"] { background: rgba(0,0,0,0.7); border: 1px solid #444; border-left: 3px solid var(--blood-red); color: white; padding: 12px; font-size: 1.1rem; width: 100%; box-sizing: border-box; margin: 5px 0 15px 0; font-family: 'Almendra', serif; outline: none; }
-        
         input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; margin: 10px 0; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: var(--blood-red); cursor: pointer; margin-top: -8px; box-shadow: 0 0 5px var(--blood-orange); }
         input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; background: #333; border-radius: 3px; border: 1px solid #000; }
 
         .profile-preview { width: 100px; height: 100px; border-radius: 8px; border: 3px solid var(--blood-red); cursor: pointer; margin: 10px auto; display: block; box-shadow: 0 0 15px rgba(138,3,3,0.8); object-fit: cover;}
+        
+        /* Avatar Modal & Grid */
         .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: none; flex-direction: column; padding: 20px; box-sizing: border-box;}
         .avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; overflow-y: auto; padding: 10px; }
-        .avatar-opt { width: 100%; aspect-ratio: 1/1; border-radius: 6px; border: 2px solid transparent; cursor: pointer; object-fit: cover; }
+        .avatar-opt { width: 100%; aspect-ratio: 1/1; border-radius: 6px; border: 2px solid transparent; cursor: pointer; object-fit: cover; transition: filter 0.3s; }
         .avatar-opt.selected { border-color: var(--blood-orange); filter: drop-shadow(0 0 5px var(--blood-orange)); }
+        .avatar-opt.taken { filter: grayscale(1) brightness(0.4); pointer-events: none; border-color: #333; }
 
-        /* Game Stage */
         #top-status-bar { text-align: center; font-size: 1.2rem; font-weight: bold; color: var(--blood-orange); padding: 5px; background: rgba(0,0,0,0.8); border-bottom: 1px solid #333; letter-spacing: 1px;}
         #game-stage { flex: 1; display: grid; grid-template-columns: 80px 1fr 80px; gap: 5px; margin-top: 5px; overflow: hidden; }
         .side-panel { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-bottom: 10px;}
-        
         .p-slot { background: linear-gradient(180deg, #1a1a1a 0%, #000 100%); border: 1px solid #333; padding: 5px; border-radius: 8px; text-align: center; font-size: 11px; position: relative; box-shadow: 0 2px 5px rgba(0,0,0,0.8); cursor: pointer; transition: 0.2s;}
         .p-slot:active { transform: scale(0.95); }
         .p-avatar { width: 60px; height: 60px; border-radius: 6px; border: 1px solid var(--blood-red); object-fit: cover; position: relative; z-index: 2; }
         
-        /* Slot Decorators */
-        .kick-btn { position: absolute; top: -5px; left: -5px; width: 22px; height: 22px; cursor: pointer; background: #000; border-radius: 50%; z-index: 10; }
+        .kick-btn { position: absolute; top: -5px; left: -5px; width: 22px; height: 22px; cursor: pointer; background: #000; border-radius: 50%; z-index: 10; border: 1px solid var(--blood-red);}
         .notif-dot { position: absolute; top: -5px; right: -5px; width: 15px; height: 15px; background: red; border-radius: 50%; border: 2px solid #000; z-index: 10; display: none; box-shadow: 0 0 5px red;}
 
-        /* Chat System */
         #chat-window { background: var(--ui-bg); border: 1px solid #333; border-radius: 5px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        #chat-header { background: #000; text-align: center; padding: 5px; font-size: 0.9rem; color: var(--blood-orange); border-bottom: 1px solid var(--blood-red); font-weight: bold;}
+        #chat-header { background: #000; text-align: center; padding: 5px; font-size: 0.9rem; color: var(--blood-orange); border-bottom: 1px solid var(--blood-red); font-weight: bold; cursor:pointer;}
         #chat-history { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; font-family: sans-serif; display: flex; flex-direction: column; gap: 5px;}
-        
         .msg { background: rgba(255,255,255,0.1); padding: 5px 8px; border-radius: 4px; word-wrap: break-word;}
         .msg.private { background: rgba(138,3,3,0.3); border-left: 2px solid var(--blood-orange); }
         
-        /* Full Width Bottom Bar */
         #bottom-bar { display: flex; align-items: center; padding: 10px; background: #050505; border-top: 2px solid var(--blood-red); gap: 10px; width: 100%; box-sizing: border-box; z-index: 100;}
         #emoji-drawer { position: absolute; bottom: 80px; right: 10px; background: #111; border: 1px solid var(--blood-red); border-radius: 8px; display: none; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 10px; z-index: 500; }
 
-        /* Emoji Center Animation */
-        @keyframes centerFloatFade {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
-            70% { opacity: 1; transform: translate(-50%, -70%) scale(1.2); }
-            100% { opacity: 0; transform: translate(-50%, -90%) scale(1); }
-        }
+        @keyframes centerFloatFade { 0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); } 70% { opacity: 1; transform: translate(-50%, -70%) scale(1.2); } 100% { opacity: 0; transform: translate(-50%, -90%) scale(1); } }
         .anim-emoji { position: absolute; top: 50%; left: 50%; width: 40px; height: 40px; pointer-events: none; z-index: 100; animation: centerFloatFade 2s forwards ease-out; }
 
-        /* 3D SWIVEL ANIMATION */
-        @keyframes swivelReveal {
-            0% { transform: scale(0.5) rotateY(0deg) translateY(50px); opacity: 0; }
-            40% { transform: scale(1.1) rotateY(360deg) translateY(-20px); opacity: 1; }
-            100% { transform: scale(1.3) rotateY(1080deg) translateY(-10px); box-shadow: 0 0 30px var(--blood-orange);}
-        }
+        /* --- CINEMATIC CARD REVEAL --- */
+        #role-reveal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; transition: opacity 1s; }
+        .reveal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; position: relative; }
+        
+        .r-card { width: 130px; height: 195px; transform-style: preserve-3d; position: relative; transition: transform 0.8s ease, filter 0.8s ease; }
+        
+        /* Initial Scattered Rotation */
+        #rev-villager { transform: rotate(-6deg); }
+        #rev-wolf { transform: rotate(4deg) translateY(10px); }
+        #rev-seer { transform: rotate(-3deg) translateY(-5px); }
+        #rev-doc { transform: rotate(5deg); }
 
-        #role-reveal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000; display: none; flex-direction: column; align-items: center; justify-content: center; }
-        .r-card { width: 180px; height: 270px; transform-style: preserve-3d; position: relative; }
-        .r-card.swivel { animation: swivelReveal 1.8s ease-out forwards; }
-        .r-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 15px; background-size: cover; border: 3px solid #333;}
-        .r-front { transform: rotateY(180deg); }
-        .r-back { background-image: url('assets/cards/card_back.png'); }
+        .r-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 12px; background-size: cover; border: 2px solid #333;}
+        .r-front { transform: rotateY(0deg); } /* Start face up */
+        .r-back { background-image: url('assets/cards/card_back.png'); transform: rotateY(180deg); }
+        
+        /* Animation States */
+        .r-card.face-down { transform: rotateY(180deg) scale(0.9) !important; filter: brightness(0.3); }
+        .r-card.hero { animation: heroSwivel 2s forwards ease-out; z-index: 50; }
+        
+        @keyframes heroSwivel {
+            0% { transform: scale(1) rotateY(0deg); }
+            100% { transform: scale(1.4) translateY(-30px) rotateY(360deg); box-shadow: 0 0 30px var(--blood-orange); border-color: var(--blood-orange); }
+        }
     </style>
 </head>
 <body>
@@ -117,7 +109,6 @@
 </div>
 
 <div id="app-container" class="hidden">
-    
     <div id="phase-transition"></div>
 
     <div id="start-screen" class="screen">
@@ -174,13 +165,11 @@
 
         <div id="game-stage">
             <div id="left-slots" class="side-panel"></div>
-            
             <div id="chat-window">
-                <div id="chat-header" id="chat-context-title" onclick="setChatContext('global')" style="cursor:pointer;">🌐 GLOBAL CHAT (Click to Reset)</div>
+                <div id="chat-header" id="chat-context-title" onclick="setChatContext('global')">🌐 GLOBAL CHAT (Click to Reset)</div>
                 <div id="chat-history"></div>
                 <div id="emoji-drawer"></div>
             </div>
-            
             <div id="right-slots" class="side-panel"></div>
         </div>
     </div>
@@ -197,11 +186,13 @@
         <button class="btn-custom" onclick="closeAvatarModal()" style="margin-top:auto;">CONFIRM</button>
     </div>
 
-    <div id="role-reveal-overlay" onclick="this.style.display='none'">
-        <h2 id="role-reveal-title" style="border:none; margin-bottom: 40px; font-size:2rem;">YOUR DESTINY</h2>
-        <div class="r-card" id="my-role-card">
-            <div class="r-face r-front" id="my-role-art" style="background-image:url('assets/cards/card_villager.png')"></div>
-            <div class="r-face r-back"></div>
+    <div id="role-reveal-overlay">
+        <h2 id="role-reveal-title" style="border:none; margin-bottom: 40px; font-size:2rem; z-index:100;">YOUR DESTINY</h2>
+        <div class="reveal-grid" id="reveal-cards-container">
+            <div class="r-card" id="rev-villager"><div class="r-face r-front" style="background-image:url('assets/cards/card_villager.png')"></div><div class="r-face r-back"></div></div>
+            <div class="r-card" id="rev-wolf"><div class="r-face r-front" style="background-image:url('assets/cards/card_wolf.png')"></div><div class="r-face r-back"></div></div>
+            <div class="r-card" id="rev-seer"><div class="r-face r-front" style="background-image:url('assets/cards/card_seer.png')"></div><div class="r-face r-back"></div></div>
+            <div class="r-card" id="rev-doc"><div class="r-face r-front" style="background-image:url('assets/cards/card_doc.png')"></div><div class="r-face r-back"></div></div>
         </div>
     </div>
 
@@ -209,17 +200,18 @@
 
 <script>
     const SUPABASE_URL = "https://uzqgleedmzxicejpbqqx.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6cWdsZWVkbXp4aWNlanBicXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzQ2MzEsImV4cCI6MjA5NDMxMDYzMX0.uO3efVivjiPYC4sQL2eSXjaA20xYV4Afyo0ORdL4HTs"; 
+    const SUPABASE_KEY = "YOUR_ANON_KEY"; 
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let myId, myRoom, myName, myAvatar = "01", myAssignedRole = "Villager", isHost = false, isMaster = false, targetProfile = 'host';
     let localGameConfig = { maxPlayers: 8, seers: 1, docs: 1, dayTime: 0 }; 
-    let roomChannel; 
+    let roomChannel; let setupChannel;
     let gameLoopInterval = null;
     let localChatHistory = [];
     let currentChatContext = 'global';
+    let tempAvatarId = Math.random().toString(36).substr(2,9); // Session ID for avatar picking
 
-    // --- ASSET PRELOADER ---
+    // --- PRELOADER ---
     const assetsToLoad = [
         'assets/backgrounds/bg_lobby.jpg', 'assets/backgrounds/bg_day.jpg', 'assets/backgrounds/bg_night.jpg',
         'assets/ui/werewolf.png', 'assets/ui/icon_exit.png', 'assets/ui/enter.png', 'assets/ui/icon_kick.png',
@@ -233,39 +225,29 @@
         assetsToLoad.forEach(src => {
             const img = new Image();
             img.onload = () => {
-                loadedCount++;
-                document.getElementById('progress-fill').style.width = `${(loadedCount / assetsToLoad.length) * 100}%`;
+                loadedCount++; document.getElementById('progress-fill').style.width = `${(loadedCount / assetsToLoad.length) * 100}%`;
                 if(loadedCount === assetsToLoad.length) setTimeout(() => {
                     document.getElementById('loading-screen').style.display = 'none';
                     document.getElementById('app-container').classList.remove('hidden');
                     document.getElementById('app-container').style.backgroundImage = "url('assets/backgrounds/bg_lobby.jpg')";
                 }, 500);
-            };
-            img.src = src;
+            }; img.src = src;
         });
     };
 
     function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
 
-    // --- BIND ENTER KEY ---
-    document.getElementById('chat-input').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') { sendChat(); }
-    });
+    // --- INPUT BINDINGS ---
+    document.getElementById('chat-input').addEventListener('keypress', function (e) { if (e.key === 'Enter') sendChat(); });
 
-    // --- ANIMATED BACKGROUND CHANGER ---
     function changeBackground(url) {
         const fader = document.getElementById('phase-transition');
         const container = document.getElementById('app-container');
-        if (container.style.backgroundImage.includes(url)) return; // Don't animate if same bg
-        
+        if (container.style.backgroundImage.includes(url)) return; 
         fader.style.opacity = 1;
-        setTimeout(() => {
-            container.style.backgroundImage = `url('${url}')`;
-            fader.style.opacity = 0;
-        }, 1000);
+        setTimeout(() => { container.style.backgroundImage = `url('${url}')`; fader.style.opacity = 0; }, 1000);
     }
 
-    // --- CONFIG SLIDERS ---
     function updateSliders() {
         const p = parseInt(document.getElementById('cfg-players').value); document.getElementById('val-players').innerText = p;
         const day = parseInt(document.getElementById('cfg-day').value); document.getElementById('val-day').innerText = day === 0 ? "0s (Unlimited)" : `${day}s`;
@@ -276,13 +258,44 @@
         localGameConfig = { maxPlayers: p, seers: s, docs: d, dayTime: day };
     }
 
-    // --- AVATARS & NAMES ---
-    function openAvatarModal(type) {
-        targetProfile = type; const modal = document.getElementById('avatar-modal'); const grid = document.getElementById('modal-grid');
-        grid.innerHTML = ''; for(let i=1; i<=16; i++) { let num = i < 10 ? '0'+i : i; grid.innerHTML += `<img src="assets/avatars/avatar_${num}.png" class="avatar-opt" onclick="setAvatar('${num}')">`; }
-        modal.style.display = 'flex';
+    // --- REALTIME AVATAR PICKER ---
+    async function openAvatarModal(type) {
+        targetProfile = type; 
+        if(!myRoom) { // Generate temp room if host hasn't clicked create yet
+            myRoom = Math.random().toString(36).substring(2, 6).toUpperCase(); 
+            isHost = true;
+        }
+        
+        // Connect to setup channel for real-time graying out
+        if(!setupChannel) {
+            setupChannel = sb.channel(`setup_${myRoom}`, { config: { broadcast: { self: false } } });
+            setupChannel.on('broadcast', { event: 'avatar_claim' }, payload => {
+                const el = document.getElementById(`opt-${payload.payload.avatar}`);
+                if(el) el.classList.add('taken');
+                const old = document.getElementById(`opt-${payload.payload.oldAvatar}`);
+                if(old && payload.payload.oldAvatar) old.classList.remove('taken');
+            });
+            setupChannel.subscribe();
+        }
+
+        const { data: dbPlayers } = await sb.from('players').select('avatar').eq('room_code', myRoom);
+        const dbTaken = dbPlayers ? dbPlayers.map(p => p.avatar) : [];
+
+        const grid = document.getElementById('modal-grid'); grid.innerHTML = ''; 
+        for(let i=1; i<=16; i++) { 
+            let num = i < 10 ? '0'+i : i; 
+            let isDbTaken = dbTaken.includes(num) ? 'taken' : '';
+            grid.innerHTML += `<img src="assets/avatars/avatar_${num}.png" id="opt-${num}" class="avatar-opt ${isDbTaken}" onclick="setAvatar('${num}')">`; 
+        }
+        document.getElementById('avatar-modal').style.display = 'flex';
     }
-    function setAvatar(num) { myAvatar = num; document.getElementById(targetProfile === 'host' ? 'host-avatar-prev' : 'player-avatar-prev').src = `assets/avatars/avatar_${num}.png`; closeAvatarModal(); }
+
+    function setAvatar(num) { 
+        let old = myAvatar; myAvatar = num; 
+        document.getElementById(targetProfile === 'host' ? 'host-avatar-prev' : 'player-avatar-prev').src = `assets/avatars/avatar_${num}.png`; 
+        if(setupChannel) setupChannel.send({ type: 'broadcast', event: 'avatar_claim', payload: { avatar: num, oldAvatar: old } });
+        closeAvatarModal(); 
+    }
     function closeAvatarModal() { document.getElementById('avatar-modal').style.display = 'none'; }
 
     function processName(val) {
@@ -293,17 +306,12 @@
         } else { isMaster = false; myName = raw.substring(0, 6); }
     }
 
-    // --- ENTRY & REJOIN ---
+    // --- ENTRY ---
     async function createRoom() {
-        const nameInput = document.getElementById('host-name').value;
-        if(!nameInput.trim()) return alert("Enter a name.");
-        isHost = true; myRoom = Math.random().toString(36).substring(2, 6).toUpperCase(); processName(nameInput);
-        
-        // Use localGameConfig safely, defaulting to 0 if unmodified
+        if(!document.getElementById('host-name').value.trim()) return alert("Enter a name.");
+        processName(document.getElementById('host-name').value);
         const dayDur = localGameConfig.dayTime || 0;
-        
-        const { error } = await sb.from('rooms').insert([{ room_code: myRoom, phase: 'LOBBY', time_remaining: 0, day_duration: dayDur, night_duration: 30 }]);
-        if (error) { alert("Error Summoning Lobby: " + error.message); return; }
+        await sb.from('rooms').insert([{ room_code: myRoom, phase: 'LOBBY', time_remaining: 0, day_duration: dayDur, night_duration: 30 }]);
         enterLobby();
     }
 
@@ -320,6 +328,8 @@
     }
 
     async function enterLobby() {
+        if(setupChannel) { sb.removeChannel(setupChannel); setupChannel = null; } // Clean up temp channel
+        
         const { data: existing } = await sb.from('players').select('*').eq('room_code', myRoom).eq('username', myName);
         if(existing && existing.length > 0) {
             myId = existing[0].id; await sb.from('players').update({ avatar: myAvatar }).eq('id', myId);
@@ -335,15 +345,23 @@
         initRealtime(); buildEmojiDrawer();
     }
 
-    // --- REALTIME ---
+    // --- REALTIME LOBBY & GAME ---
     function initRealtime() {
-        sb.channel('db_sync').on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_code=eq.${myRoom}` }, () => { syncGrid(); }).subscribe();
+        sb.channel('db_sync').on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_code=eq.${myRoom}` }, (payload) => { 
+            // Kick detection
+            if(payload.eventType === 'DELETE' && payload.old.id === myId) {
+                alert("You have been kicked by the host."); location.reload();
+            }
+            syncGrid(); 
+        }).subscribe();
         
         sb.channel('room_sync').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${myRoom}` }, (payload) => {
             const r = payload.new;
-            document.getElementById('top-status-bar').innerText = `${r.phase} PHASE - ${r.time_remaining}s`;
+            let phaseText = r.phase === 'DAY1' ? 'DAY (DISCUSSION)' : r.phase;
+            document.getElementById('top-status-bar').innerText = `${phaseText} PHASE - ${r.time_remaining}s`;
+            
             if(r.phase === 'NIGHT') changeBackground('assets/backgrounds/bg_night.jpg');
-            else if(r.phase === 'DAY' || r.phase === 'VOTING') changeBackground('assets/backgrounds/bg_day.jpg');
+            else if(r.phase === 'DAY' || r.phase === 'VOTING' || r.phase === 'DAY1') changeBackground('assets/backgrounds/bg_day.jpg');
             else if(r.phase === 'LOBBY') { 
                 changeBackground('assets/backgrounds/bg_lobby.jpg'); 
                 document.getElementById('top-status-bar').innerText = `WAITING FOR PLAYERS...`; 
@@ -354,18 +372,14 @@
 
         roomChannel = sb.channel(`chat_${myRoom}`, { config: { broadcast: { self: true } } });
         roomChannel.on('broadcast', { event: 'msg' }, payload => {
-            localChatHistory.push(payload.payload);
-            renderChat();
-            
+            localChatHistory.push(payload.payload); renderChat();
             const p = payload.payload;
-            if(p.type === 'private' && p.targetId == myId && currentChatContext != p.senderId) {
-                document.getElementById(`notif-${p.senderId}`).style.display = 'block';
-            }
+            if(p.type === 'private' && p.targetId == myId && currentChatContext != p.senderId) document.getElementById(`notif-${p.senderId}`).style.display = 'block';
         });
         roomChannel.on('broadcast', { event: 'emoji' }, payload => { triggerEmojiAnimation(payload.payload.pid, payload.payload.emojiNum); });
         roomChannel.on('broadcast', { event: 'trigger_reveal' }, payload => { 
             myAssignedRole = payload.payload.roles[myId]; 
-            if(!isMaster) revealMyRole(true); 
+            if(!isMaster) runCardAnimation(); 
         });
         
         roomChannel.subscribe(); syncGrid();
@@ -391,29 +405,21 @@
         });
     }
 
-    async function kickPlayer(e, id) {
-        e.stopPropagation();
-        const { error } = await sb.from('players').delete().eq('id', id);
-        if (error) alert("Could not kick player: " + error.message);
-    }
+    async function kickPlayer(e, id) { e.stopPropagation(); await sb.from('players').delete().eq('id', id); }
 
-    // --- INTERACTION & CHAT ---
+    // --- CHAT ---
     function handleProfileClick(pid, name) {
-        if(pid === myId) { revealMyRole(false); } 
+        if(pid === myId) { displayQuickRole(); } 
         else {
-            currentChatContext = pid;
-            document.getElementById(`notif-${pid}`).style.display = 'none'; 
+            currentChatContext = pid; document.getElementById(`notif-${pid}`).style.display = 'none'; 
             document.getElementById('chat-header').innerText = `👤 WHISPERING: ${name.toUpperCase()} (Click to Global)`;
-            document.getElementById('chat-header').style.color = "cyan";
-            renderChat();
+            document.getElementById('chat-header').style.color = "cyan"; renderChat();
         }
     }
 
-    function setChatContext(ctx) {
-        currentChatContext = 'global';
-        document.getElementById('chat-header').innerText = `🌐 GLOBAL CHAT (Click to Reset)`;
-        document.getElementById('chat-header').style.color = "var(--blood-orange)";
-        renderChat();
+    function setChatContext() {
+        currentChatContext = 'global'; document.getElementById('chat-header').innerText = `🌐 GLOBAL CHAT (Click to Reset)`;
+        document.getElementById('chat-header').style.color = "var(--blood-orange)"; renderChat();
     }
 
     function renderChat() {
@@ -421,7 +427,7 @@
         localChatHistory.forEach(p => {
             if(p.type === 'global' && currentChatContext === 'global') {
                 hist.innerHTML += `<div class="msg"><b>${p.sender}:</b> ${p.text}</div>`;
-            } else if (p.type === 'private' && (currentChatContext === 'global' ? false : true)) {
+            } else if (p.type === 'private' && (currentChatContext !== 'global')) {
                 if ((p.targetId == myId && p.senderId == currentChatContext) || (p.senderId == myId && p.targetId == currentChatContext)) {
                     hist.innerHTML += `<div class="msg private"><b>[Priv] ${p.sender}:</b> ${p.text}</div>`;
                 } else if (isMaster && currentChatContext === 'global') {
@@ -440,11 +446,8 @@
         input.value = '';
     }
 
-    // --- EMOJIS (20) ---
-    function buildEmojiDrawer() {
-        const drawer = document.getElementById('emoji-drawer');
-        for(let i=1; i<=20; i++) { drawer.innerHTML += `<img src="assets/emojis/${i}.png" style="width:35px; cursor:pointer;" onclick="castEmoji(${i})">`; }
-    }
+    // --- EMOJIS ---
+    function buildEmojiDrawer() { const drawer = document.getElementById('emoji-drawer'); for(let i=1; i<=20; i++) { drawer.innerHTML += `<img src="assets/emojis/${i}.png" style="width:35px; cursor:pointer;" onclick="castEmoji(${i})">`; } }
     function toggleEmoji() { const d = document.getElementById('emoji-drawer'); d.style.display = d.style.display === 'grid' ? 'none' : 'grid'; }
     function castEmoji(num) { document.getElementById('emoji-drawer').style.display = 'none'; roomChannel.send({ type: 'broadcast', event: 'emoji', payload: { pid: myId, emojiNum: num } }); }
     function triggerEmojiAnimation(pid, num) {
@@ -453,7 +456,7 @@
         slot.appendChild(img); setTimeout(() => slot.removeChild(img), 2000); 
     }
 
-    // --- ROLES & ANIMATIONS ---
+    // --- CINEMATIC CARD ANIMATION ---
     async function initiateRoleReveal() {
         document.getElementById('start-game-btn').style.display = 'none';
         const { data: players } = await sb.from('players').select('*').eq('room_code', myRoom);
@@ -475,38 +478,60 @@
 
         roomChannel.send({ type: 'broadcast', event: 'trigger_reveal', payload: { roles: assignments } });
         
+        // Host triggers Day 1 after animation finishes
         setTimeout(async () => {
-            await sb.from('rooms').update({ phase: 'NIGHT', time_remaining: 30 }).eq('room_code', myRoom);
-            hostGameLoop('NIGHT', 30);
-        }, 5000);
+            await sb.from('rooms').update({ phase: 'DAY1', time_remaining: 10 }).eq('room_code', myRoom);
+            hostGameLoop('DAY1', 10);
+        }, 7000);
     }
 
-    function revealMyRole(isDramatic) {
+    function runCardAnimation() {
         if(isMaster || !myAssignedRole) return;
-        
         const overlay = document.getElementById('role-reveal-overlay');
-        const card = document.getElementById('my-role-card');
-        const art = document.getElementById('my-role-art');
+        const cards = ['villager', 'wolf', 'seer', 'doc'];
         
+        // Reset state
+        document.getElementById('reveal-cards-container').style.display = 'grid';
+        cards.forEach(c => document.getElementById(`rev-${c}`).className = 'r-card' ); // Reset rotation
+        document.getElementById('role-reveal-title').innerText = "YOUR DESTINY";
+        overlay.style.opacity = 1; overlay.style.display = 'flex';
+        
+        // Sequence
+        setTimeout(() => {
+            cards.forEach(c => {
+                let isWinner = false;
+                if(c === 'wolf' && myAssignedRole === 'Werewolf') isWinner = true;
+                if(c === 'seer' && myAssignedRole === 'Seer') isWinner = true;
+                if(c === 'doc' && myAssignedRole === 'Doctor') isWinner = true;
+                if(c === 'villager' && myAssignedRole === 'Villager') isWinner = true;
+
+                if(!isWinner) {
+                    document.getElementById(`rev-${c}`).classList.add('face-down');
+                } else {
+                    setTimeout(() => { document.getElementById(`rev-${c}`).classList.add('hero'); }, 800);
+                }
+            });
+        }, 1500);
+
+        setTimeout(() => { overlay.style.opacity = 0; setTimeout(()=> overlay.style.display='none', 1000); }, 6000);
+    }
+
+    function displayQuickRole() {
+        if(isMaster || !myAssignedRole) return;
+        const overlay = document.getElementById('role-reveal-overlay');
+        document.getElementById('reveal-cards-container').style.display = 'none'; // Hide the 4 grid
+        
+        // We inject a single card temporarily just to remind them
         let file = 'card_villager.png';
         if(myAssignedRole === 'Werewolf') file = 'card_wolf.png';
         if(myAssignedRole === 'Seer') file = 'card_seer.png';
         if(myAssignedRole === 'Doctor') file = 'card_doc.png';
         
-        art.style.backgroundImage = `url('assets/cards/${file}')`;
-        card.className = 'r-card'; 
-        overlay.style.display = 'flex';
+        overlay.innerHTML = `<h2 style="border:none; margin-bottom: 40px; font-size:2rem; z-index:100;">TAP TO CLOSE</h2>
+                             <div class="r-card" style="transform: rotateY(0deg) scale(1.3);"><div class="r-face r-front" style="background-image:url('assets/cards/${file}')"></div></div>`;
         
-        void card.offsetWidth; 
-        
-        if(isDramatic) {
-            document.getElementById('role-reveal-title').innerText = "YOUR DESTINY";
-            card.classList.add('swivel');
-            setTimeout(() => { overlay.style.display = 'none'; }, 5000); 
-        } else {
-            document.getElementById('role-reveal-title').innerText = "YOUR ROLE (TAP TO CLOSE)";
-            card.style.transform = "rotateY(180deg) scale(1.3)"; 
-        }
+        overlay.onclick = () => { overlay.style.display = 'none'; overlay.innerHTML = ''; }; // Wipe temp HTML
+        overlay.style.opacity = 1; overlay.style.display = 'flex';
     }
 
     // --- HOST LOOP ---
@@ -518,17 +543,20 @@
 
             if(currentTimer <= 0) {
                 clearInterval(gameLoopInterval);
-                let nextPhase = phase === 'NIGHT' ? 'DAY' : 'VOTING';
-                let nextDur = phase === 'NIGHT' ? localGameConfig.dayTime : 30; 
+                let nextPhase, nextDur;
                 
-                if(phase === 'VOTING') {
+                if (phase === 'DAY1') { nextPhase = 'NIGHT'; nextDur = 30; }
+                else if (phase === 'NIGHT') { nextPhase = 'DAY'; nextDur = localGameConfig.dayTime; }
+                else if (phase === 'DAY') { nextPhase = 'VOTING'; nextDur = 30; }
+                else if (phase === 'VOTING') {
                     await sb.from('rooms').update({ phase: 'LOBBY', time_remaining: 0 }).eq('room_code', myRoom);
                     roomChannel.send({ type: 'broadcast', event: 'msg', payload: { sender: 'SYSTEM', text: 'GAME OVER! All memory wiped.', type: 'global' } });
-                } else {
-                    if (nextDur === 0 && nextPhase === 'DAY') nextDur = -1; 
-                    await sb.from('rooms').update({ phase: nextPhase, time_remaining: nextDur }).eq('room_code', myRoom);
-                    if (nextDur > 0) hostGameLoop(nextPhase, nextDur);
+                    return;
                 }
+                
+                if (nextDur === 0 && nextPhase === 'DAY') nextDur = -1; 
+                await sb.from('rooms').update({ phase: nextPhase, time_remaining: nextDur }).eq('room_code', myRoom);
+                if (nextDur > 0) hostGameLoop(nextPhase, nextDur);
             }
         }, 1000);
     }
