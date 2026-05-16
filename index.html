@@ -20,10 +20,17 @@
         #app-container {
             width: 100%; max-width: 430px; height: 100%; max-height: 932px;
             background-color: var(--dark-void);
-            background-image: none; /* Set dynamically */
+            background-image: none; 
             background-size: cover; background-position: center;
             position: relative; box-shadow: 0 0 30px rgba(138, 3, 3, 0.5); 
-            display: flex; flex-direction: column; overflow: hidden; transition: background 1s ease;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* --- PHASE TRANSITION FADER --- */
+        #phase-transition {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 1000; opacity: 0; pointer-events: none;
+            transition: opacity 1s ease-in-out;
         }
 
         .screen { flex: 1; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; background: rgba(0,0,0,0.6); }
@@ -111,6 +118,8 @@
 
 <div id="app-container" class="hidden">
     
+    <div id="phase-transition"></div>
+
     <div id="start-screen" class="screen">
         <img src="assets/ui/werewolf.png" style="width: 90%; margin: 60px auto 40px auto; filter: drop-shadow(0 0 10px rgba(138,3,3,0.8));">
         <button class="btn-custom" onclick="showScreen('config-screen')">CREATE ROOM</button>
@@ -200,7 +209,7 @@
 
 <script>
     const SUPABASE_URL = "https://uzqgleedmzxicejpbqqx.supabase.co";
-    const SUPABASE_KEY = "YOUR_ANON_KEY"; // Replace with your actual key before deploying
+    const SUPABASE_KEY = "YOUR_ANON_KEY"; 
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let myId, myRoom, myName, myAvatar = "01", myAssignedRole = "Villager", isHost = false, isMaster = false, targetProfile = 'host';
@@ -208,7 +217,7 @@
     let roomChannel; 
     let gameLoopInterval = null;
     let localChatHistory = [];
-    let currentChatContext = 'global'; // 'global' or target playerId
+    let currentChatContext = 'global';
 
     // --- ASSET PRELOADER ---
     const assetsToLoad = [
@@ -237,6 +246,24 @@
     };
 
     function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }
+
+    // --- BIND ENTER KEY ---
+    document.getElementById('chat-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') { sendChat(); }
+    });
+
+    // --- ANIMATED BACKGROUND CHANGER ---
+    function changeBackground(url) {
+        const fader = document.getElementById('phase-transition');
+        const container = document.getElementById('app-container');
+        if (container.style.backgroundImage.includes(url)) return; // Don't animate if same bg
+        
+        fader.style.opacity = 1;
+        setTimeout(() => {
+            container.style.backgroundImage = `url('${url}')`;
+            fader.style.opacity = 0;
+        }, 1000);
+    }
 
     // --- CONFIG SLIDERS ---
     function updateSliders() {
@@ -268,9 +295,15 @@
 
     // --- ENTRY & REJOIN ---
     async function createRoom() {
-        if(!document.getElementById('host-name').value.trim()) return alert("Enter a name.");
-        isHost = true; myRoom = Math.random().toString(36).substring(2, 6).toUpperCase(); processName(document.getElementById('host-name').value);
-        await sb.from('rooms').insert([{ room_code: myRoom, phase: 'LOBBY', time_remaining: 0, day_duration: localGameConfig.dayTime, night_duration: 30 }]);
+        const nameInput = document.getElementById('host-name').value;
+        if(!nameInput.trim()) return alert("Enter a name.");
+        isHost = true; myRoom = Math.random().toString(36).substring(2, 6).toUpperCase(); processName(nameInput);
+        
+        // Use localGameConfig safely, defaulting to 0 if unmodified
+        const dayDur = localGameConfig.dayTime || 0;
+        
+        const { error } = await sb.from('rooms').insert([{ room_code: myRoom, phase: 'LOBBY', time_remaining: 0, day_duration: dayDur, night_duration: 30 }]);
+        if (error) { alert("Error Summoning Lobby: " + error.message); return; }
         enterLobby();
     }
 
@@ -291,7 +324,8 @@
         if(existing && existing.length > 0) {
             myId = existing[0].id; await sb.from('players').update({ avatar: myAvatar }).eq('id', myId);
         } else {
-            const { data } = await sb.from('players').insert([{ room_code: myRoom, username: myName, avatar: myAvatar, is_master: isMaster }]).select();
+            const { data, error } = await sb.from('players').insert([{ room_code: myRoom, username: myName, avatar: myAvatar, is_master: isMaster }]).select();
+            if (error) { alert("Error joining lobby: " + error.message); return; }
             myId = data[0].id;
         }
 
@@ -308,12 +342,12 @@
         sb.channel('room_sync').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${myRoom}` }, (payload) => {
             const r = payload.new;
             document.getElementById('top-status-bar').innerText = `${r.phase} PHASE - ${r.time_remaining}s`;
-            if(r.phase === 'NIGHT') document.getElementById('app-container').style.backgroundImage = "url('assets/backgrounds/bg_night.jpg')";
-            else if(r.phase === 'DAY' || r.phase === 'VOTING') document.getElementById('app-container').style.backgroundImage = "url('assets/backgrounds/bg_day.jpg')";
+            if(r.phase === 'NIGHT') changeBackground('assets/backgrounds/bg_night.jpg');
+            else if(r.phase === 'DAY' || r.phase === 'VOTING') changeBackground('assets/backgrounds/bg_day.jpg');
             else if(r.phase === 'LOBBY') { 
-                document.getElementById('app-container').style.backgroundImage = "url('assets/backgrounds/bg_lobby.jpg')"; 
+                changeBackground('assets/backgrounds/bg_lobby.jpg'); 
                 document.getElementById('top-status-bar').innerText = `WAITING FOR PLAYERS...`; 
-                localChatHistory = []; renderChat(); // Wipe memory
+                localChatHistory = []; renderChat(); 
                 if(isHost) document.getElementById('start-game-btn').style.display='block';
             }
         }).subscribe();
@@ -323,7 +357,6 @@
             localChatHistory.push(payload.payload);
             renderChat();
             
-            // Handle Notification Dots
             const p = payload.payload;
             if(p.type === 'private' && p.targetId == myId && currentChatContext != p.senderId) {
                 document.getElementById(`notif-${p.senderId}`).style.display = 'block';
@@ -338,7 +371,7 @@
         roomChannel.subscribe(); syncGrid();
     }
 
-    let pCache = {}; // Cache players to get names for private chat
+    let pCache = {}; 
     async function syncGrid() {
         const { data: players } = await sb.from('players').select('*').eq('room_code', myRoom).order('id', {ascending: true});
         const left = document.getElementById('left-slots'); const right = document.getElementById('right-slots');
@@ -348,7 +381,7 @@
             pCache[p.id] = p.username;
             const slot = `
                 <div class="p-slot" id="slot-${p.id}" onclick="handleProfileClick(${p.id}, '${p.username}')">
-                    ${isHost && p.id != myId && document.getElementById('top-status-bar').innerText.includes('WAITING') ? `<img src="assets/ui/icon_kick.png" class="kick-btn" onclick="event.stopPropagation(); kick(${p.id})">` : ''}
+                    ${isHost && p.id != myId && document.getElementById('top-status-bar').innerText.includes('WAITING') ? `<img src="assets/ui/icon_kick.png" class="kick-btn" onclick="kickPlayer(event, ${p.id})">` : ''}
                     <div class="notif-dot" id="notif-${p.id}"></div>
                     <img src="assets/avatars/avatar_${p.avatar}.png" class="p-avatar">
                     <div style="margin-top:5px; font-weight:bold; overflow:hidden;">${p.username}</div>
@@ -358,14 +391,18 @@
         });
     }
 
-    async function kick(id) { await sb.from('players').delete().eq('id', id); }
+    async function kickPlayer(e, id) {
+        e.stopPropagation();
+        const { error } = await sb.from('players').delete().eq('id', id);
+        if (error) alert("Could not kick player: " + error.message);
+    }
 
     // --- INTERACTION & CHAT ---
     function handleProfileClick(pid, name) {
         if(pid === myId) { revealMyRole(false); } 
         else {
             currentChatContext = pid;
-            document.getElementById(`notif-${pid}`).style.display = 'none'; // Clear dot
+            document.getElementById(`notif-${pid}`).style.display = 'none'; 
             document.getElementById('chat-header').innerText = `👤 WHISPERING: ${name.toUpperCase()} (Click to Global)`;
             document.getElementById('chat-header').style.color = "cyan";
             renderChat();
@@ -374,7 +411,7 @@
 
     function setChatContext(ctx) {
         currentChatContext = 'global';
-        document.getElementById('chat-header').innerText = `🌐 GLOBAL CHAT`;
+        document.getElementById('chat-header').innerText = `🌐 GLOBAL CHAT (Click to Reset)`;
         document.getElementById('chat-header').style.color = "var(--blood-orange)";
         renderChat();
     }
@@ -385,7 +422,6 @@
             if(p.type === 'global' && currentChatContext === 'global') {
                 hist.innerHTML += `<div class="msg"><b>${p.sender}:</b> ${p.text}</div>`;
             } else if (p.type === 'private' && (currentChatContext === 'global' ? false : true)) {
-                // Show if it belongs to current conversation context OR if master is spying
                 if ((p.targetId == myId && p.senderId == currentChatContext) || (p.senderId == myId && p.targetId == currentChatContext)) {
                     hist.innerHTML += `<div class="msg private"><b>[Priv] ${p.sender}:</b> ${p.text}</div>`;
                 } else if (isMaster && currentChatContext === 'global') {
@@ -458,19 +494,18 @@
         if(myAssignedRole === 'Doctor') file = 'card_doc.png';
         
         art.style.backgroundImage = `url('assets/cards/${file}')`;
-        card.className = 'r-card'; // reset
+        card.className = 'r-card'; 
         overlay.style.display = 'flex';
         
-        // Force reflow to trigger animation
         void card.offsetWidth; 
         
         if(isDramatic) {
             document.getElementById('role-reveal-title').innerText = "YOUR DESTINY";
             card.classList.add('swivel');
-            setTimeout(() => { overlay.style.display = 'none'; }, 5000); // Auto close first time
+            setTimeout(() => { overlay.style.display = 'none'; }, 5000); 
         } else {
             document.getElementById('role-reveal-title').innerText = "YOUR ROLE (TAP TO CLOSE)";
-            card.style.transform = "rotateY(180deg) scale(1.3)"; // Just show it static for a quick reminder
+            card.style.transform = "rotateY(180deg) scale(1.3)"; 
         }
     }
 
@@ -484,13 +519,13 @@
             if(currentTimer <= 0) {
                 clearInterval(gameLoopInterval);
                 let nextPhase = phase === 'NIGHT' ? 'DAY' : 'VOTING';
-                let nextDur = phase === 'NIGHT' ? localGameConfig.dayTime : 30; // Night -> Day -> Voting -> Lobby
+                let nextDur = phase === 'NIGHT' ? localGameConfig.dayTime : 30; 
                 
                 if(phase === 'VOTING') {
                     await sb.from('rooms').update({ phase: 'LOBBY', time_remaining: 0 }).eq('room_code', myRoom);
                     roomChannel.send({ type: 'broadcast', event: 'msg', payload: { sender: 'SYSTEM', text: 'GAME OVER! All memory wiped.', type: 'global' } });
                 } else {
-                    if (nextDur === 0 && nextPhase === 'DAY') nextDur = -1; // Unlimited flag
+                    if (nextDur === 0 && nextPhase === 'DAY') nextDur = -1; 
                     await sb.from('rooms').update({ phase: nextPhase, time_remaining: nextDur }).eq('room_code', myRoom);
                     if (nextDur > 0) hostGameLoop(nextPhase, nextDur);
                 }
